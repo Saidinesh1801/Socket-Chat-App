@@ -202,7 +202,7 @@ app.get('/api/link-preview', async (req, res) => {
 // ── Room management endpoints ──
 app.get('/api/rooms', async (req, res) => {
   try {
-    const rooms = await Room.find({}, { password: 0 }).sort({ createdAt: -1 });
+    const rooms = await Room.find({}).sort({ createdAt: -1 });
     const roomData = rooms.map(r => ({
       name: r.name,
       creator: r.creator,

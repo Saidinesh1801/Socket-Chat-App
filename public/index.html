@@ -113,6 +113,13 @@
         .room-item .ri-lock{font-size:.8rem;color:var(--text-secondary)}
         .room-create{display:flex;gap:8px;margin-top:8px}
         .room-create input{flex:1}
+        .room-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+        .room-header h2{font-size:1.2rem;font-weight:600}
+        .room-nav{display:flex;gap:6px}
+        .room-user-info{font-size:.78rem;color:var(--text-secondary);margin-bottom:14px}
+        .room-section-label{font-size:.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:14px}
+        .room-delete-btn{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:4px 8px;border-radius:6px;transition:all .15s;flex-shrink:0}
+        .room-delete-btn:hover{background:rgba(239,68,68,.1);color:var(--accent-red)}
         .room-create-btn{padding:10px 16px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:500;cursor:pointer;font-family:inherit}
 
         /* ── Chat Container ── */
@@ -315,16 +322,48 @@
     </div>
 </div>
 
+<!-- Room Password Modal -->
+<div id="password-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:110">
+    <div class="auth-card" style="max-width:340px;padding:30px">
+        <h1 style="font-size:1.2rem;margin-bottom:4px">🔒 Room Locked</h1>
+        <p style="margin-bottom:16px" id="pw-modal-room"></p>
+        <div class="auth-error" id="pw-modal-error"></div>
+        <input class="auth-input" id="pw-modal-input" placeholder="Enter room password" type="password" />
+        <div style="display:flex;gap:8px">
+            <button class="auth-btn" id="pw-modal-cancel" style="background:var(--border);color:var(--text)">Cancel</button>
+            <button class="auth-btn" id="pw-modal-join">Join</button>
+        </div>
+    </div>
+</div>
+
 <!-- Room Select -->
 <div id="room-overlay">
     <div class="room-card">
-        <h2>💬 Choose a Room</h2>
+        <div class="room-header">
+            <h2>💬 Choose a Room</h2>
+            <div class="room-nav">
+                <button class="hdr-btn" id="room-back-btn" title="Back">←</button>
+                <button class="hdr-btn" id="room-home-btn" title="Home">🏠</button>
+                <button class="hdr-btn" id="room-logout-btn" title="Logout" style="color:var(--accent-red)">⏻</button>
+            </div>
+        </div>
+        <div class="room-user-info">Logged in as <strong id="room-username"></strong></div>
         <ul class="room-list" id="room-list"></ul>
+
+        <div class="room-section-label">Create New Room</div>
         <div class="room-create">
-            <input class="auth-input" id="new-room-name" placeholder="New room name" style="margin:0" />
+            <input class="auth-input" id="new-room-name" placeholder="Room name" style="margin:0" />
             <input class="auth-input" id="new-room-pass" placeholder="Password (optional)" type="password" style="margin:0;width:140px" />
             <button class="room-create-btn" id="create-room-btn">Create</button>
         </div>
+
+        <div class="room-section-label" style="margin-top:12px">Join Existing Room</div>
+        <div class="room-create">
+            <input class="auth-input" id="join-room-name" placeholder="Room name" style="margin:0" />
+            <input class="auth-input" id="join-room-pass" placeholder="Password" type="password" style="margin:0;width:140px" />
+            <button class="room-create-btn" id="join-room-btn">Enter</button>
+        </div>
+
         <div class="auth-error" id="room-error" style="margin-top:8px"></div>
     </div>
 </div>
@@ -340,7 +379,7 @@
         <button class="hdr-btn" id="search-toggle" title="Search">🔍</button>
         <button class="hdr-btn" id="users-toggle" title="Online users">👥</button>
         <button class="hdr-btn" id="theme-toggle" title="Theme">🎨</button>
-        <button class="hdr-btn" id="room-switch-btn" title="Switch room">🚪</button>
+        <button class="hdr-btn" id="room-switch-btn" title="Back to rooms">←</button>
     </div>
 
     <div id="theme-menu">
@@ -535,6 +574,7 @@ function connectSocket() {
 // ── Room Selection ──
 async function showRoomSelect() {
     roomOverlay.style.display = 'flex';
+    document.getElementById('room-username').textContent = username;
     try {
         const res = await fetch('/api/rooms');
         const rooms = await res.json();
@@ -547,20 +587,61 @@ async function showRoomSelect() {
                 <span class="ri-icon">#</span>
                 <span class="ri-name">${escapeHtml(r.name)}</span>
                 ${r.hasPassword ? '<span class="ri-lock">🔒</span>' : ''}
+                ${r.creator !== 'system' ? `<button class="room-delete-btn" data-del="${escapeHtml(r.name)}" title="Delete room">🗑️</button>` : ''}
             </li>
         `).join('');
-        list.querySelectorAll('.room-item').forEach(el => el.addEventListener('click', () => {
+        // Click room name to join
+        list.querySelectorAll('.room-item').forEach(el => el.addEventListener('click', (e) => {
+            if (e.target.classList.contains('room-delete-btn')) return;
             const name = el.dataset.room;
             const locked = el.dataset.locked === 'true';
-            let password = null;
             if (locked) {
-                password = prompt('Enter room password:');
-                if (password === null) return;
+                showPasswordModal(name);
+            } else {
+                joinRoom(name, null);
             }
-            joinRoom(name, password);
+        }));
+        // Delete room
+        list.querySelectorAll('.room-delete-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const name = btn.dataset.del;
+            if (confirm(`Delete room "${name}"? All messages will be lost.`)) {
+                socket.emit('delete room', { name });
+            }
         }));
     } catch(e) {}
 }
+
+// ── Password Modal ──
+let pendingRoom = null;
+const pwModal = document.getElementById('password-modal');
+const pwInput = document.getElementById('pw-modal-input');
+const pwError = document.getElementById('pw-modal-error');
+
+function showPasswordModal(roomName) {
+    pendingRoom = roomName;
+    document.getElementById('pw-modal-room').textContent = `Enter password for "${roomName}"`;
+    pwInput.value = '';
+    pwError.textContent = '';
+    pwModal.style.display = 'flex';
+    pwInput.focus();
+}
+
+document.getElementById('pw-modal-join').addEventListener('click', () => {
+    const pass = pwInput.value.trim();
+    if (!pass) { pwError.textContent = 'Password is required'; return; }
+    pwModal.style.display = 'none';
+    joinRoom(pendingRoom, pass);
+});
+
+document.getElementById('pw-modal-cancel').addEventListener('click', () => {
+    pwModal.style.display = 'none';
+    pendingRoom = null;
+});
+
+pwInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('pw-modal-join').click();
+});
 
 document.getElementById('create-room-btn').addEventListener('click', () => {
     const name = document.getElementById('new-room-name').value.trim();
@@ -569,9 +650,42 @@ document.getElementById('create-room-btn').addEventListener('click', () => {
     socket.emit('create room', { name, password: pass || null });
 });
 
+// Join existing room by name + password
+document.getElementById('join-room-btn').addEventListener('click', () => {
+    const name = document.getElementById('join-room-name').value.trim();
+    if (!name) { document.getElementById('room-error').textContent = 'Enter a room name'; return; }
+    const pass = document.getElementById('join-room-pass').value.trim();
+    document.getElementById('room-error').textContent = '';
+    joinRoom(name, pass || null);
+});
+
+// Chat header back button — return to room select
 document.getElementById('room-switch-btn').addEventListener('click', () => {
     document.getElementById('chat-container').style.display = 'none';
     showRoomSelect();
+});
+
+// Room page — Back (go to login)
+document.getElementById('room-back-btn').addEventListener('click', () => {
+    if (!confirm('Go back to login screen?')) return;
+    localStorage.removeItem('chat_token');
+    localStorage.removeItem('chat_user');
+    if (socket) socket.disconnect();
+    location.reload();
+});
+
+// Room page — Home (reload room list)
+document.getElementById('room-home-btn').addEventListener('click', () => {
+    showRoomSelect();
+});
+
+// Room page — Logout
+document.getElementById('room-logout-btn').addEventListener('click', () => {
+    if (!confirm('Are you sure you want to logout?')) return;
+    localStorage.removeItem('chat_token');
+    localStorage.removeItem('chat_user');
+    if (socket) socket.disconnect();
+    location.reload();
 });
 
 function joinRoom(name, password) {
@@ -737,8 +851,12 @@ function setupSocketEvents() {
     socket.on('room created', (d) => { showRoomSelect(); });
     socket.on('room deleted', (d) => { if(d.name===room){room=null; showRoomSelect();} });
     socket.on('room error', (d) => {
-        document.getElementById('room-error').textContent = d.message;
-        showToast('room-toast', d.message);
+        // If we're in the chat view, go back to room select
+        document.getElementById('chat-container').style.display = 'none';
+        showRoomSelect();
+        setTimeout(() => {
+            document.getElementById('room-error').textContent = d.message;
+        }, 100);
     });
 
     socket.on('search results', (docs) => {
