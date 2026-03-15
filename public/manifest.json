@@ -4,8 +4,8 @@
   "description": "Real-time chat application",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f0f2f5",
-  "theme_color": "#4f46e5",
+  "background_color": "#0a0a1a",
+  "theme_color": "#818cf8",
   "icons": [
     { "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>", "sizes": "any", "type": "image/svg+xml" }
   ]

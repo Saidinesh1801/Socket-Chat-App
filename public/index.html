@@ -1,334 +1,81 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-
-        /* ── Themes ── */
-        :root,[data-theme="light"]{
-            --bg:#f0f2f5;--surface:#ffffff;--primary:#4f46e5;--primary-hover:#4338ca;
-            --text:#1a1a2e;--text-secondary:#6b7280;--border:#e5e7eb;
-            --own-bubble:#4f46e5;--own-text:#fff;--other-bubble:#fff;--other-text:#1a1a2e;
-            --input-bg:#f9fafb;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-lg:0 10px 40px rgba(0,0,0,.08);
-            --skeleton-base:#e5e7eb;--skeleton-shine:#f3f4f6;
-            --reply-bg:rgba(0,0,0,.05);--reply-border:#d1d5db;
-            --emoji-bg:#fff;--lightbox-bg:rgba(0,0,0,.85);
-            --banner-warn:#fbbf24;--banner-warn-text:#92400e;--banner-ok:#34d399;--banner-ok-text:#065f46;
-            --ctx-bg:#fff;--ctx-shadow:0 4px 20px rgba(0,0,0,.12);
-            --link-preview-bg:#f3f4f6;--search-highlight:#fef08a;
-            --accent-green:#10b981;--accent-red:#ef4444;
-        }
-        [data-theme="dark"]{
-            --bg:#111827;--surface:#1f2937;--primary:#6366f1;--primary-hover:#4f46e5;
-            --text:#f3f4f6;--text-secondary:#9ca3af;--border:#374151;
-            --own-bubble:#6366f1;--own-text:#fff;--other-bubble:#374151;--other-text:#f3f4f6;
-            --input-bg:#111827;--shadow:0 1px 3px rgba(0,0,0,.2);--shadow-lg:0 10px 40px rgba(0,0,0,.3);
-            --skeleton-base:#374151;--skeleton-shine:#4b5563;
-            --reply-bg:rgba(255,255,255,.06);--reply-border:#4b5563;
-            --emoji-bg:#1f2937;--lightbox-bg:rgba(0,0,0,.92);
-            --banner-warn:#f59e0b;--banner-warn-text:#fff;--banner-ok:#10b981;--banner-ok-text:#fff;
-            --ctx-bg:#1f2937;--ctx-shadow:0 4px 20px rgba(0,0,0,.4);
-            --link-preview-bg:#374151;--search-highlight:#854d0e;
-            --accent-green:#10b981;--accent-red:#ef4444;
-        }
-        [data-theme="nord"]{
-            --bg:#2e3440;--surface:#3b4252;--primary:#88c0d0;--primary-hover:#81a1c1;
-            --text:#eceff4;--text-secondary:#d8dee9;--border:#434c5e;
-            --own-bubble:#5e81ac;--own-text:#eceff4;--other-bubble:#3b4252;--other-text:#eceff4;
-            --input-bg:#2e3440;--shadow:0 1px 3px rgba(0,0,0,.2);--shadow-lg:0 10px 40px rgba(0,0,0,.3);
-            --skeleton-base:#434c5e;--skeleton-shine:#4c566a;
-            --reply-bg:rgba(255,255,255,.05);--reply-border:#4c566a;
-            --emoji-bg:#3b4252;--lightbox-bg:rgba(0,0,0,.9);
-            --banner-warn:#ebcb8b;--banner-warn-text:#2e3440;--banner-ok:#a3be8c;--banner-ok-text:#2e3440;
-            --ctx-bg:#3b4252;--ctx-shadow:0 4px 20px rgba(0,0,0,.4);
-            --link-preview-bg:#434c5e;--search-highlight:#ebcb8b;
-            --accent-green:#a3be8c;--accent-red:#bf616a;
-        }
-        [data-theme="dracula"]{
-            --bg:#282a36;--surface:#44475a;--primary:#bd93f9;--primary-hover:#ff79c6;
-            --text:#f8f8f2;--text-secondary:#6272a4;--border:#6272a4;
-            --own-bubble:#bd93f9;--own-text:#282a36;--other-bubble:#44475a;--other-text:#f8f8f2;
-            --input-bg:#282a36;--shadow:0 1px 3px rgba(0,0,0,.3);--shadow-lg:0 10px 40px rgba(0,0,0,.4);
-            --skeleton-base:#44475a;--skeleton-shine:#6272a4;
-            --reply-bg:rgba(255,255,255,.05);--reply-border:#6272a4;
-            --emoji-bg:#44475a;--lightbox-bg:rgba(0,0,0,.92);
-            --banner-warn:#f1fa8c;--banner-warn-text:#282a36;--banner-ok:#50fa7b;--banner-ok-text:#282a36;
-            --ctx-bg:#44475a;--ctx-shadow:0 4px 20px rgba(0,0,0,.5);
-            --link-preview-bg:#383a4a;--search-highlight:#f1fa8c;
-            --accent-green:#50fa7b;--accent-red:#ff5555;
-        }
-
-        body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:16px;color:var(--text)}
-
-        /* ── Banner ── */
-        #reconnect-banner{position:fixed;top:0;left:0;right:0;padding:10px 20px;text-align:center;font-size:.8rem;font-weight:500;z-index:200;display:none}
-        #reconnect-banner.warn{background:var(--banner-warn);color:var(--banner-warn-text);display:block}
-        #reconnect-banner.ok{background:var(--banner-ok);color:var(--banner-ok-text);display:block}
-
-        /* ── Lightbox ── */
-        #lightbox{position:fixed;inset:0;background:var(--lightbox-bg);z-index:300;display:none;justify-content:center;align-items:center;cursor:zoom-out}
-        #lightbox.active{display:flex}
-        #lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;object-fit:contain}
-
-        /* ── Toast ── */
-        .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:8px;font-size:.8rem;font-weight:500;display:none;z-index:100;animation:fadeUp .2s ease}
-        #rate-toast{background:var(--accent-red);color:#fff}
-        #room-toast{background:var(--accent-red);color:#fff}
-
-        /* ── Context Menu ── */
-        #context-menu{position:fixed;background:var(--ctx-bg);border:1px solid var(--border);border-radius:10px;box-shadow:var(--ctx-shadow);z-index:250;display:none;overflow:hidden;min-width:160px}
-        #context-menu .ctx-item{padding:10px 16px;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s;color:var(--text)}
-        #context-menu .ctx-item:hover{background:var(--input-bg)}
-        #context-menu .ctx-item.danger{color:var(--accent-red)}
-
-        /* ── Auth ── */
-        #auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;justify-content:center;align-items:center;z-index:100}
-        .auth-card{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);text-align:center}
-        .auth-card h1{font-size:1.5rem;font-weight:600;margin-bottom:4px}
-        .auth-card p{font-size:.875rem;color:var(--text-secondary);margin-bottom:24px}
-        .auth-card .logo{width:48px;height:48px;background:var(--primary);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.4rem;color:#fff}
-        .auth-input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:10px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:12px;background:var(--input-bg);color:var(--text)}
-        .auth-input:focus{border-color:var(--primary)}
-        .auth-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:500;font-family:inherit;cursor:pointer;transition:background .2s;margin-top:4px}
-        .auth-btn:hover{background:var(--primary-hover)}
-        .auth-error{color:var(--accent-red);font-size:.8rem;margin-bottom:8px;min-height:20px}
-        .auth-toggle{margin-top:16px;font-size:.82rem;color:var(--text-secondary)}
-        .auth-toggle a{color:var(--primary);cursor:pointer;text-decoration:none;font-weight:500}
-
-        /* ── Room Select ── */
-        #room-overlay{position:fixed;inset:0;background:var(--bg);display:none;justify-content:center;align-items:center;z-index:90}
-        .room-card{background:var(--surface);border-radius:16px;padding:32px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)}
-        .room-card h2{font-size:1.2rem;font-weight:600;margin-bottom:16px}
-        .room-list{list-style:none;max-height:240px;overflow-y:auto;margin-bottom:16px}
-        .room-item{padding:10px 14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .15s;margin-bottom:4px}
-        .room-item:hover{background:var(--input-bg)}
-        .room-item .ri-icon{width:32px;height:32px;border-radius:8px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
-        .room-item .ri-name{font-weight:500;font-size:.9rem;flex:1}
-        .room-item .ri-lock{font-size:.8rem;color:var(--text-secondary)}
-        .room-create{display:flex;gap:8px;margin-top:8px}
-        .room-create input{flex:1}
-        .room-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-        .room-header h2{font-size:1.2rem;font-weight:600}
-        .room-nav{display:flex;gap:6px}
-        .room-user-info{font-size:.78rem;color:var(--text-secondary);margin-bottom:14px}
-        .room-section-label{font-size:.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:14px}
-        .room-delete-btn{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:4px 8px;border-radius:6px;transition:all .15s;flex-shrink:0}
-        .room-delete-btn:hover{background:rgba(239,68,68,.1);color:var(--accent-red)}
-        .room-create-btn{padding:10px 16px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:500;cursor:pointer;font-family:inherit}
-
-        /* ── Chat Container ── */
-        #chat-container{width:100%;max-width:720px;height:94vh;background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg);display:none;flex-direction:column;position:relative}
-
-        /* ── Header ── */
-        #header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface)}
-        .room-icon{width:34px;height:34px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff;flex-shrink:0}
-        .room-details{flex:1;min-width:0}
-        .room-name{font-size:.9rem;font-weight:600}
-        .room-meta{font-size:.7rem;color:var(--text-secondary);margin-top:1px}
-        .hdr-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
-        .hdr-btn:hover{background:var(--input-bg)}
-        .hdr-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-
-        /* ── Search Bar ── */
-        #search-bar{display:none;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
-        #search-bar.open{display:flex;align-items:center;gap:8px}
-        #search-input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;background:var(--input-bg);color:var(--text)}
-        #search-input:focus{border-color:var(--primary)}
-        #search-count{font-size:.72rem;color:var(--text-secondary);white-space:nowrap}
-
-        /* ── Users Panel ── */
-        #users-panel{display:none;border-bottom:1px solid var(--border);padding:10px 16px;background:var(--surface);max-height:160px;overflow-y:auto}
-        #users-panel.open{display:block}
-        #users-panel h3{font-size:.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-        .users-list{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
-        .user-chip{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;border-radius:20px;background:var(--input-bg);font-size:.78rem;font-weight:500;cursor:pointer;transition:background .15s}
-        .user-chip:hover{background:var(--border)}
-        .user-chip .avatar-sm{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:600;color:#fff}
-
-        /* ── Messages ── */
-        #messages{flex:1;overflow-y:auto;padding:14px 16px;list-style:none;background:var(--bg);display:flex;flex-direction:column;gap:2px;position:relative}
-        #messages::-webkit-scrollbar{width:5px}
-        #messages::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
-        [data-theme="dark"] #messages::-webkit-scrollbar-thumb,[data-theme="nord"] #messages::-webkit-scrollbar-thumb,[data-theme="dracula"] #messages::-webkit-scrollbar-thumb{background:#4b5563}
-
-        /* Drop zone overlay */
-        #drop-zone{position:absolute;inset:0;background:rgba(79,70,229,.12);border:2px dashed var(--primary);border-radius:12px;display:none;justify-content:center;align-items:center;font-size:1rem;font-weight:600;color:var(--primary);z-index:10;pointer-events:none}
-        #drop-zone.active{display:flex}
-
-        /* Skeleton */
-        .skeleton-msg{padding:12px 16px;border-radius:14px;max-width:55%;animation:shimmer 1.5s infinite;background:linear-gradient(90deg,var(--skeleton-base) 25%,var(--skeleton-shine) 50%,var(--skeleton-base) 75%);background-size:200% 100%}
-        .skeleton-msg.left{align-self:flex-start}
-        .skeleton-msg.right{align-self:flex-end}
-        .skeleton-msg .sk-line{height:10px;border-radius:4px;background:rgba(128,128,128,.12);margin-bottom:6px}
-        .skeleton-msg .sk-line:last-child{margin-bottom:0;width:60%}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-        #load-more-spinner{text-align:center;padding:8px;display:none;font-size:.72rem;color:var(--text-secondary)}
-
-        /* Date separator */
-        .date-separator{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:.68rem;color:var(--text-secondary);font-weight:500}
-        .date-separator::before,.date-separator::after{content:'';flex:1;height:1px;background:var(--border)}
-
-        /* Scroll-to-bottom */
-        #scroll-bottom{position:absolute;bottom:12px;right:16px;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.9rem;z-index:5;transition:opacity .2s}
-        #scroll-bottom:hover{background:var(--input-bg)}
-        #scroll-bottom.visible{display:flex}
-
-        /* Messages */
-        .msg-wrapper{display:flex;gap:6px;align-items:flex-end}
-        .msg-wrapper.own{justify-content:flex-end}
-        .msg-wrapper.grouped{margin-top:-1px}
-        .msg-wrapper.grouped .avatar-msg{visibility:hidden}
-        .msg-wrapper .avatar-msg{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;color:#fff;flex-shrink:0;margin-bottom:2px}
-        .message{max-width:72%;padding:8px 12px;border-radius:16px;word-wrap:break-word;line-height:1.5;font-size:.85rem;position:relative;animation:fadeUp .15s ease;cursor:default}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-        .message.own{background:var(--own-bubble);color:var(--own-text);border-bottom-right-radius:4px}
-        .message.other{background:var(--other-bubble);color:var(--other-text);border-bottom-left-radius:4px;box-shadow:var(--shadow)}
-        .message.deleted-msg{opacity:.5;font-style:italic}
-        .message.grouped-msg .message-info{display:none}
-        .message-info{font-size:.66rem;opacity:.6;margin-bottom:2px;font-weight:500;display:flex;align-items:center;gap:4px}
-        .message.own .message-info{justify-content:flex-end}
-        .msg-status{font-size:.68rem;opacity:.7;letter-spacing:-2px}
-        .edited-tag{font-size:.6rem;opacity:.5;margin-left:4px}
-        .seen-info{font-size:.6rem;opacity:.45;margin-top:2px;text-align:right}
-
-        /* Reply quote */
-        .reply-quote{padding:5px 9px;margin-bottom:4px;border-radius:6px;background:var(--reply-bg);border-left:3px solid var(--primary);font-size:.75rem}
-        .reply-quote .rq-user{font-weight:600;font-size:.68rem;opacity:.8}
-        .reply-quote .rq-text{opacity:.7;margin-top:1px;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-
-        /* Reactions */
-        .reactions-bar{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
-        .reaction-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:10px;background:var(--reply-bg);font-size:.72rem;cursor:pointer;border:1px solid transparent;transition:all .15s}
-        .reaction-chip:hover{border-color:var(--primary)}
-        .reaction-chip.own-reaction{border-color:var(--primary);background:rgba(79,70,229,.12)}
-        .reaction-chip .rc-count{font-weight:600;font-size:.65rem}
-
-        /* Link preview */
-        .link-preview{margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--link-preview-bg);border-left:3px solid var(--primary);font-size:.78rem;cursor:pointer;text-decoration:none;display:block;color:inherit}
-        .link-preview:hover{opacity:.85}
-        .link-preview .lp-title{font-weight:600;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-        .link-preview .lp-desc{opacity:.7;font-size:.72rem;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-        .link-preview .lp-img{width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-bottom:6px}
-
-        .message .file-link{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.06);font-size:.75rem;text-decoration:none;color:inherit;transition:background .2s}
-        .message.own .file-link{background:rgba(255,255,255,.18)}
-        .message img.chat-img{max-width:200px;max-height:180px;border-radius:8px;margin-top:4px;display:block;cursor:zoom-in}
-
-        /* ── Typing dots ── */
-        #typing-indicator{padding:0 16px 3px;min-height:18px;background:var(--bg);display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--text-secondary)}
-        .typing-dots{display:inline-flex;gap:3px;align-items:center}
-        .typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--text-secondary);animation:bounce 1.4s infinite both}
-        .typing-dots span:nth-child(2){animation-delay:.2s}
-        .typing-dots span:nth-child(3){animation-delay:.4s}
-        @keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
-
-        /* ── Reply Preview ── */
-        #reply-preview{display:none;padding:6px 16px;background:var(--surface);border-top:1px solid var(--border);align-items:center;gap:8px;font-size:.78rem}
-        #reply-preview .reply-info{flex:1;min-width:0}
-        #reply-preview .reply-label{font-weight:600;color:var(--primary);font-size:.7rem}
-        #reply-preview .reply-snippet{color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.75rem}
-        .cancel-btn{cursor:pointer;color:var(--text-secondary);font-size:1rem;padding:2px 6px;border-radius:6px;border:none;background:none;transition:background .2s}
-        .cancel-btn:hover{background:var(--border)}
-
-        /* ── File Preview ── */
-        #file-preview{display:none;padding:6px 16px;background:var(--surface);border-top:1px solid var(--border);align-items:center;gap:8px;font-size:.78rem;color:var(--text-secondary)}
-        #file-preview .file-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-        /* ── Voice Recording ── */
-        #voice-indicator{display:none;padding:6px 16px;background:var(--surface);border-top:1px solid var(--border);align-items:center;gap:8px;font-size:.78rem;color:var(--accent-red)}
-        #voice-indicator .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent-red);animation:pulse 1s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-        /* ── Emoji Picker ── */
-        #emoji-picker{display:none;position:absolute;bottom:60px;left:54px;background:var(--emoji-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:10px;width:280px;max-height:200px;overflow-y:auto;z-index:50}
-        #emoji-picker.open{display:block}
-        .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:1px}
-        .emoji-item{font-size:1.2rem;padding:3px;border-radius:6px;cursor:pointer;text-align:center;border:none;background:none;transition:background .15s}
-        .emoji-item:hover{background:var(--input-bg)}
-
-        /* ── Reaction Picker (mini) ── */
-        #reaction-picker{position:fixed;background:var(--emoji-bg);border:1px solid var(--border);border-radius:20px;box-shadow:var(--ctx-shadow);padding:4px 6px;display:none;z-index:260;gap:2px}
-        #reaction-picker.open{display:flex}
-        .react-emoji{font-size:1.1rem;padding:3px 4px;border-radius:6px;cursor:pointer;border:none;background:none;transition:transform .15s}
-        .react-emoji:hover{transform:scale(1.3)}
-
-        /* ── Theme Selector ── */
-        #theme-menu{position:absolute;top:50px;right:8px;background:var(--ctx-bg);border:1px solid var(--border);border-radius:10px;box-shadow:var(--ctx-shadow);display:none;z-index:50;overflow:hidden;min-width:130px}
-        #theme-menu.open{display:block}
-        .theme-option{padding:8px 14px;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s;color:var(--text)}
-        .theme-option:hover{background:var(--input-bg)}
-        .theme-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-
-        /* ── Input Bar ── */
-        #form{display:flex;align-items:center;padding:10px 12px;gap:6px;border-top:1px solid var(--border);background:var(--surface)}
-        #file-input{display:none}
-        .inp-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
-        .inp-btn:hover{background:var(--input-bg)}
-        .inp-btn.recording{background:var(--accent-red);color:#fff;border-color:var(--accent-red);animation:pulse 1s infinite}
-        #input{flex:1;padding:9px 14px;border:1px solid var(--border);border-radius:10px;outline:none;font-size:.85rem;font-family:inherit;background:var(--input-bg);color:var(--text);transition:border-color .2s}
-        #input:focus{border-color:var(--primary)}
-        #send-btn{width:34px;height:34px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
-        #send-btn:hover{background:var(--primary-hover)}
-        #send-btn svg{width:15px;height:15px}
-
-        @media(max-width:600px){body{padding:0}#chat-container{height:100vh;border-radius:0}.auth-card,.room-card{margin:16px}#emoji-picker{left:8px;right:8px;width:auto}}
-    </style>
+    <meta name="theme-color" content="#0a0a1a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+<a href="#form" class="skip-link" tabindex="0">Skip to message input</a>
 
-<div id="reconnect-banner"></div>
+<div id="reconnect-banner" aria-live="assertive"></div>
 <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
-<div class="toast" id="rate-toast">Slow down! 1 message per second.</div>
-<div class="toast" id="room-toast"></div>
+<div class="toast" id="rate-toast" role="alert" aria-live="assertive">Slow down! 1 message per second.</div>
+<div class="toast" id="room-toast" role="alert" aria-live="assertive"></div>
 
 <!-- Context Menu -->
-<div id="context-menu">
-    <div class="ctx-item" data-action="reply">↩️ Reply</div>
-    <div class="ctx-item" data-action="edit">✏️ Edit</div>
-    <div class="ctx-item danger" data-action="delete">🗑️ Delete</div>
+<div id="context-menu" role="menu" aria-label="Message actions">
+    <div class="ctx-item" data-action="reply" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>Reply</div>
+    <div class="ctx-item" data-action="edit" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</div>
+    <div class="ctx-item danger" data-action="delete" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</div>
 </div>
 
 <!-- Reaction Picker -->
-<div id="reaction-picker">
-    <button class="react-emoji" data-emoji="👍">👍</button>
-    <button class="react-emoji" data-emoji="❤️">❤️</button>
-    <button class="react-emoji" data-emoji="😂">😂</button>
-    <button class="react-emoji" data-emoji="😮">😮</button>
-    <button class="react-emoji" data-emoji="😢">😢</button>
-    <button class="react-emoji" data-emoji="🔥">🔥</button>
+<div id="reaction-picker" role="toolbar" aria-label="Add reaction">
+    <button class="react-emoji" data-emoji="👍" aria-label="Thumbs up">👍</button>
+    <button class="react-emoji" data-emoji="❤️" aria-label="Heart">❤️</button>
+    <button class="react-emoji" data-emoji="😂" aria-label="Laughing">😂</button>
+    <button class="react-emoji" data-emoji="😮" aria-label="Surprised">😮</button>
+    <button class="react-emoji" data-emoji="😢" aria-label="Sad">😢</button>
+    <button class="react-emoji" data-emoji="🔥" aria-label="Fire">🔥</button>
 </div>
 
-<!-- Auth -->
-<div id="auth-overlay">
-    <div class="auth-card">
-        <div class="logo">💬</div>
+<!-- Auth Overlay -->
+<div id="auth-overlay" role="dialog" aria-modal="true" aria-label="Authentication">
+    <div class="auth-card" id="auth-card">
+        <div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <h1 id="auth-title">Sign Up</h1>
         <p id="auth-subtitle">Create an account to start chatting</p>
-        <div class="auth-error" id="auth-error"></div>
-        <input class="auth-input" id="auth-username" placeholder="Username" maxlength="24" autofocus />
-        <input class="auth-input" id="auth-password" placeholder="Password" type="password" />
+        <div class="auth-error" id="auth-error" role="alert" aria-live="polite"></div>
+        <input class="auth-input" id="auth-username" placeholder="Username" maxlength="24" autofocus aria-label="Username" />
+        <input class="auth-input" id="auth-email" placeholder="Email address" type="email" aria-label="Email address" />
+        <input class="auth-input" id="auth-password" placeholder="Password" type="password" aria-label="Password" />
         <button class="auth-btn" id="auth-btn">Sign Up</button>
-        <div class="auth-toggle">
-            <span id="auth-toggle-text">Already have an account?</span>
-            <a id="auth-toggle-link">Log In</a>
-        </div>
+        <div class="auth-toggle"><span id="auth-toggle-text">Already have an account?</span> <a id="auth-toggle-link">Log In</a></div>
+        <div class="auth-toggle" id="forgot-link-wrap" style="display:none;margin-top:8px"><a id="forgot-link">Forgot Password?</a></div>
+    </div>
+    <div class="auth-card" id="forgot-card" style="display:none">
+        <div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <h1>Forgot Password</h1>
+        <p>Enter your email to receive a verification code</p>
+        <div class="auth-error" id="forgot-error" role="alert" aria-live="polite"></div>
+        <input class="auth-input" id="forgot-email" placeholder="Email address" type="email" aria-label="Email address" />
+        <button class="auth-btn" id="forgot-send-btn">Send Code</button>
+        <div class="auth-toggle" style="margin-top:12px"><a id="forgot-back">← Back to Login</a></div>
+    </div>
+    <div class="auth-card" id="otp-card" style="display:none">
+        <div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div>
+        <h1>Enter Code</h1>
+        <p id="otp-subtitle">We sent a 6-digit code to your email</p>
+        <div class="auth-error" id="otp-error" role="alert" aria-live="polite"></div>
+        <input class="auth-input" id="otp-code" placeholder="6-digit code" maxlength="6" style="text-align:center;font-size:1.2rem;letter-spacing:6px" aria-label="Verification code" />
+        <input class="auth-input" id="otp-newpass" placeholder="New password" type="password" aria-label="New password" />
+        <button class="auth-btn" id="otp-verify-btn">Reset Password</button>
+        <div class="auth-toggle" style="margin-top:12px"><a id="otp-back">← Back</a></div>
     </div>
 </div>
 
 <!-- Room Password Modal -->
-<div id="password-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:110">
+<div id="password-modal" role="dialog" aria-modal="true" aria-label="Room password" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:200">
     <div class="auth-card" style="max-width:340px;padding:30px">
-        <h1 style="font-size:1.2rem;margin-bottom:4px">🔒 Room Locked</h1>
+        <h1 style="font-size:1.2rem;margin-bottom:4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Room Locked</h1>
         <p style="margin-bottom:16px" id="pw-modal-room"></p>
-        <div class="auth-error" id="pw-modal-error"></div>
-        <input class="auth-input" id="pw-modal-input" placeholder="Enter room password" type="password" />
+        <div class="auth-error" id="pw-modal-error" role="alert" aria-live="polite"></div>
+        <input class="auth-input" id="pw-modal-input" placeholder="Enter room password" type="password" aria-label="Room password" />
         <div style="display:flex;gap:8px">
             <button class="auth-btn" id="pw-modal-cancel" style="background:var(--border);color:var(--text)">Cancel</button>
             <button class="auth-btn" id="pw-modal-join">Join</button>
@@ -336,870 +83,551 @@
     </div>
 </div>
 
-<!-- Room Select -->
-<div id="room-overlay">
-    <div class="room-card">
-        <div class="room-header">
-            <h2>💬 Choose a Room</h2>
-            <div class="room-nav">
-                <button class="hdr-btn" id="room-back-btn" title="Back">←</button>
-                <button class="hdr-btn" id="room-home-btn" title="Home">🏠</button>
-                <button class="hdr-btn" id="room-logout-btn" title="Logout" style="color:var(--accent-red)">⏻</button>
+<!-- ═══ MAIN APP (3-Panel Layout) ═══ -->
+<div id="app-container">
+
+    <!-- LEFT: Sidebar -->
+    <aside id="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" id="nav-chat" title="Chats"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chats</span></button>
+                <button class="sidebar-btn" id="nav-users" title="Online Users"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span></button>
+                <button class="sidebar-btn" id="nav-theme" title="Theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>Theme</span></button>
+                <button class="sidebar-btn" id="nav-settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
+            </nav>
+        </div>
+        <div class="sidebar-bottom">
+            <div class="sidebar-user">
+                <div class="sidebar-avatar" id="sidebar-avatar"></div>
+                <span class="sidebar-username" id="sidebar-username"></span>
+            </div>
+            <button class="sidebar-btn logout" id="sidebar-logout" title="Logout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></button>
+        </div>
+    </aside>
+
+    <!-- MIDDLE: Room List -->
+    <div id="room-panel">
+        <div class="panel-header">
+            <h2>Chats</h2>
+            <button class="panel-action-btn" id="new-room-toggle" title="New Room"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </div>
+        <div id="room-create-panel" class="room-create-panel" style="display:none">
+            <div class="room-section-label">Create New Room</div>
+            <div class="room-create">
+                <input class="auth-input" id="new-room-name" placeholder="Room name" style="margin:0" aria-label="New room name" />
+                <input class="auth-input" id="new-room-pass" placeholder="Password (optional)" type="password" style="margin:0" aria-label="Room password" />
+                <button class="room-create-btn" id="create-room-btn">Create</button>
+            </div>
+            <div class="room-section-label" style="margin-top:10px">Join Existing Room</div>
+            <div class="room-create">
+                <input class="auth-input" id="join-room-name" placeholder="Room name" style="margin:0" aria-label="Room name to join" />
+                <input class="auth-input" id="join-room-pass" placeholder="Password" type="password" style="margin:0" aria-label="Room password" />
+                <button class="room-create-btn" id="join-room-btn">Enter</button>
+            </div>
+            <div class="auth-error" id="room-error" role="alert" aria-live="polite" style="margin-top:6px"></div>
         </div>
         <div class="room-user-info">Logged in as <strong id="room-username"></strong></div>
         <ul class="room-list" id="room-list"></ul>
-
-        <div class="room-section-label">Create New Room</div>
-        <div class="room-create">
-            <input class="auth-input" id="new-room-name" placeholder="Room name" style="margin:0" />
-            <input class="auth-input" id="new-room-pass" placeholder="Password (optional)" type="password" style="margin:0;width:140px" />
-            <button class="room-create-btn" id="create-room-btn">Create</button>
+        <div id="theme-panel" style="display:none">
+            <div class="room-section-label">Choose Theme</div>
+            <div class="theme-option" data-theme="light"><span class="theme-dot" style="background:#f0f2f5;border:1px solid #ccc"></span>Light</div>
+            <div class="theme-option" data-theme="dark"><span class="theme-dot" style="background:#111827"></span>Dark</div>
+            <div class="theme-option" data-theme="nord"><span class="theme-dot" style="background:#2e3440"></span>Nord</div>
+            <div class="theme-option" data-theme="dracula"><span class="theme-dot" style="background:#282a36"></span>Dracula</div>
         </div>
-
-        <div class="room-section-label" style="margin-top:12px">Join Existing Room</div>
-        <div class="room-create">
-            <input class="auth-input" id="join-room-name" placeholder="Room name" style="margin:0" />
-            <input class="auth-input" id="join-room-pass" placeholder="Password" type="password" style="margin:0;width:140px" />
-            <button class="room-create-btn" id="join-room-btn">Enter</button>
+        <div id="users-sidebar-panel" style="display:none">
+            <div class="room-section-label">Online — <span id="users-count">0</span></div>
+            <ul class="users-list" id="users-list" role="list" aria-label="Online users list"></ul>
         </div>
+        <div id="settings-panel" style="display:none">
+            <div class="panel-header"><h2>Settings</h2></div>
+            <div class="settings-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="settings-search-input" placeholder="Search settings" aria-label="Search settings" />
+            </div>
+            <div class="settings-profile" id="settings-profile">
+                <div class="settings-avatar" id="settings-avatar"></div>
+                <div class="settings-profile-info">
+                    <div class="settings-profile-name" id="settings-profile-name"></div>
+                    <div class="settings-profile-status">Hey there! I'm using Chat</div>
+                </div>
+            </div>
+            <div class="settings-divider"></div>
+            <ul class="settings-list" id="settings-list">
+                <li class="settings-item" data-section="general">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">General</div><div class="settings-item-desc">Startup and close</div></div>
+                </li>
+                <li class="settings-item" data-section="account">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">Account</div><div class="settings-item-desc">Security notifications, account info</div></div>
+                </li>
+                <li class="settings-item" data-section="privacy">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">Privacy</div><div class="settings-item-desc">Blocked contacts, disappearing messages</div></div>
+                </li>
+                <li class="settings-item" data-section="chats">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">Chats</div><div class="settings-item-desc">Theme, wallpaper, chat settings</div></div>
+                </li>
+                <li class="settings-item" data-section="notifications">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">Notifications</div><div class="settings-item-desc">Messages, groups, sounds</div></div>
+                </li>
+                <li class="settings-item" data-section="shortcuts">
+                    <div class="settings-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10"/></svg></div>
+                    <div class="settings-item-text"><div class="settings-item-title">Keyboard shortcuts</div><div class="settings-item-desc">Quick actions</div></div>
+                </li>
 
-        <div class="auth-error" id="room-error" style="margin-top:8px"></div>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Resize Handle -->
+    <div id="resize-handle" title="Drag to resize"></div>
+
+    <!-- RIGHT: Chat -->
+    <div id="chat-container">
+        <div id="chat-empty">
+            <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <h3>Select a room to start chatting</h3>
+            <p>Choose from the rooms on the left, or create a new one</p>
+        </div>
+        <div id="settings-detail" style="display:none">
+            <!-- Default placeholder -->
+            <div class="settings-section" id="settings-default">
+                <div class="settings-detail-placeholder">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <h3>Settings</h3>
+                </div>
+            </div>
+
+            <!-- General -->
+            <div class="settings-section" id="settings-general" style="display:none">
+                <div class="sd-header">
+                    <h2>General</h2>
+                    <p>Startup and close preferences</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Startup</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Launch at login</span><span class="sd-toggle-desc">Open Chat automatically when you start your computer</span></span>
+                        <input type="checkbox" id="set-launch-startup" /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Start minimised</span><span class="sd-toggle-desc">Start the app in the background</span></span>
+                        <input type="checkbox" id="set-start-minimised" /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Close behaviour</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Close to tray</span><span class="sd-toggle-desc">Keep running in the background when you close the window</span></span>
+                        <input type="checkbox" id="set-close-tray" /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Language</div>
+                    <div class="sd-select-row">
+                        <span class="sd-toggle-label">App language</span>
+                        <select class="sd-select" id="set-language"><option>English</option><option>Spanish</option><option>French</option><option>German</option><option>Hindi</option><option>Japanese</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account -->
+            <div class="settings-section" id="settings-account" style="display:none">
+                <div class="sd-header">
+                    <h2>Account</h2>
+                    <p>Security notifications and account info</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Profile</div>
+                    <div class="sd-profile-card">
+                        <div class="sd-profile-avatar" id="sd-account-avatar"></div>
+                        <div class="sd-profile-details">
+                            <div class="sd-profile-name" id="sd-account-name"></div>
+                            <div class="sd-profile-joined">Member since 2025</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Security</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Two-factor authentication</span><span class="sd-toggle-desc">Add an extra layer of security to your account</span></span>
+                        <input type="checkbox" id="set-2fa" /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Login notifications</span><span class="sd-toggle-desc">Get notified when your account is logged in from a new device</span></span>
+                        <input type="checkbox" id="set-login-notif" checked /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Danger zone</div>
+                    <button class="sd-btn sd-btn-danger" id="set-delete-account">Delete account</button>
+                </div>
+            </div>
+
+            <!-- Privacy -->
+            <div class="settings-section" id="settings-privacy" style="display:none">
+                <div class="sd-header">
+                    <h2>Privacy</h2>
+                    <p>Blocked contacts and disappearing messages</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Visibility</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Read receipts</span><span class="sd-toggle-desc">Let others see when you've read their messages</span></span>
+                        <input type="checkbox" id="set-read-receipts" checked /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Last seen</span><span class="sd-toggle-desc">Show when you were last active</span></span>
+                        <input type="checkbox" id="set-last-seen" checked /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Online status</span><span class="sd-toggle-desc">Show others that you are currently online</span></span>
+                        <input type="checkbox" id="set-online-status" checked /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Messages</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Disappearing messages</span><span class="sd-toggle-desc">New messages will disappear after 24 hours</span></span>
+                        <input type="checkbox" id="set-disappearing" /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Blocked users</div>
+                    <p class="sd-empty-note">No blocked users</p>
+                </div>
+            </div>
+
+            <!-- Chats -->
+            <div class="settings-section" id="settings-chats" style="display:none">
+                <div class="sd-header">
+                    <h2>Chats</h2>
+                    <p>Theme, wallpaper and chat settings</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Theme</div>
+                    <div class="sd-theme-grid" id="sd-theme-grid">
+                        <div class="sd-theme-card" data-theme="light"><span class="sd-theme-dot" style="background:#f0f2f5;border:1px solid #ccc"></span><span>Light</span></div>
+                        <div class="sd-theme-card" data-theme="dark"><span class="sd-theme-dot" style="background:#111827"></span><span>Dark</span></div>
+                        <div class="sd-theme-card" data-theme="nord"><span class="sd-theme-dot" style="background:#2e3440"></span><span>Nord</span></div>
+                        <div class="sd-theme-card" data-theme="dracula"><span class="sd-theme-dot" style="background:#282a36"></span><span>Dracula</span></div>
+                    </div>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Wallpaper</div>
+                    <div class="sd-wp-tabs">
+                        <button class="sd-wp-tab active" data-wp-tab="gradients">Gradients</button>
+                        <button class="sd-wp-tab" data-wp-tab="anime">Anime</button>
+                        <button class="sd-wp-tab" data-wp-tab="movies">Movies</button>
+                        <button class="sd-wp-tab" data-wp-tab="series">Series</button>
+                        <button class="sd-wp-tab" data-wp-tab="patterns">Patterns</button>
+                        <button class="sd-wp-tab" data-wp-tab="custom">Custom</button>
+                    </div>
+
+                    <!-- Gradients -->
+                    <div class="sd-wp-panel" id="wp-tab-gradients">
+                        <div class="sd-wallpaper-grid">
+                            <div class="sd-wp-card active" data-wallpaper="none"><div class="sd-wp-preview sd-wp-none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div><span>None</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-sunset"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#f093fb,#f5576c,#fda085)"></div><span>Sunset</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-ocean"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div><span>Ocean</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-forest"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#11998e,#38ef7d)"></div><span>Forest</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-midnight"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)"></div><span>Midnight</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-candy"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)"></div><span>Candy</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-fire"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#f12711,#f5af19)"></div><span>Fire</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-aurora"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#43e97b,#38f9d7,#667eea)"></div><span>Aurora</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-rose"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#ee9ca7,#ffdde1)"></div><span>Rose</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-arctic"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#74ebd5,#acb6e5)"></div><span>Arctic</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-dusk"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#2c3e50,#fd746c)"></div><span>Dusk</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-neon"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#00f260,#0575e6)"></div><span>Neon</span></div>
+                            <div class="sd-wp-card" data-wallpaper="gradient-peach"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)"></div><span>Peach</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Anime -->
+                    <div class="sd-wp-panel" id="wp-tab-anime" style="display:none">
+                        <div class="sd-wallpaper-grid">
+                            <div class="sd-wp-card" data-wallpaper="anime-naruto"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#ff6b00,#ff9a44,#1a1a2e)"></div><span>Naruto</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-dbz"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#ff8c00,#ffd700,#4169e1)"></div><span>Dragon Ball</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-aot"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#2d3436,#636e72,#6c5ce7)"></div><span>Attack on Titan</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-onepiece"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0077b6,#00b4d8,#d62828)"></div><span>One Piece</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-demonslayer"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#00cec9,#6c5ce7,#fd79a8)"></div><span>Demon Slayer</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-mha"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#00b894,#fdcb6e,#e17055)"></div><span>My Hero</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-jjk"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0c0c1d,#6c5ce7,#e84393)"></div><span>Jujutsu Kaisen</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-spy"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#d63031,#2d3436,#fdcb6e)"></div><span>Spy × Family</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-eva"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#6c3082,#2e1065,#00ff41)"></div><span>Evangelion</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-ghibli"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#87ceeb,#90ee90,#fff8dc)"></div><span>Ghibli</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-death"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1a1a2e,#16213e,#e94560)"></div><span>Death Note</span></div>
+                            <div class="sd-wp-card" data-wallpaper="anime-chainsaw"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#b71c1c,#ff5722,#ffab00)"></div><span>Chainsaw Man</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Movies -->
+                    <div class="sd-wp-panel" id="wp-tab-movies" style="display:none">
+                        <div class="sd-wallpaper-grid">
+                            <div class="sd-wp-card" data-wallpaper="movie-starwars"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#000428,#004e92,#00d2ff)"></div><span>Star Wars</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-matrix"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#000000,#003300,#00ff41)"></div><span>Matrix</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-avengers"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#4a148c,#7b1fa2,#ffd54f)"></div><span>Avengers</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-batman"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0a0a0a,#1a1a2e,#f1c40f)"></div><span>Batman</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-interstellar"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0c0c1d,#1a1a3e,#3a3a6e,#0984e3)"></div><span>Interstellar</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-spiderman"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#d32f2f,#1565c0,#0d0d0d)"></div><span>Spider-Man</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-frozen"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#e8f4f8,#b3e5fc,#4fc3f7,#0288d1)"></div><span>Frozen</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-lotr"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#3e2723,#5d4037,#ffd54f)"></div><span>Lord of Rings</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-joker"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1b5e20,#4a148c,#f9a825)"></div><span>Joker</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-inception"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1a237e,#283593,#ff6f00)"></div><span>Inception</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-ironman"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#b71c1c,#ff5722,#ffc107)"></div><span>Iron Man</span></div>
+                            <div class="sd-wp-card" data-wallpaper="movie-harrypotter"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1a1a2e,#4a0e4e,#c8a415)"></div><span>Harry Potter</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Series -->
+                    <div class="sd-wp-panel" id="wp-tab-series" style="display:none">
+                        <div class="sd-wallpaper-grid">
+                            <div class="sd-wp-card" data-wallpaper="series-stranger"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0d0d0d,#1a0000,#d32f2f)"></div><span>Stranger Things</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-breaking"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#33691e,#827717,#f9a825)"></div><span>Breaking Bad</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-got"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#263238,#37474f,#ff6f00)"></div><span>Game of Thrones</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-squid"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#e91e63,#1a1a2e,#00bcd4)"></div><span>Squid Game</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-witcher"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#212121,#424242,#c0ca33)"></div><span>Witcher</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-money"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#b71c1c,#d32f2f,#0d0d0d)"></div><span>Money Heist</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-peaky"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1a1a2e,#3e2723,#bf8b30)"></div><span>Peaky Blinders</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-wednesday"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0d0d0d,#37474f,#7e57c2)"></div><span>Wednesday</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-mandalorian"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#3e2723,#795548,#4fc3f7)"></div><span>Mandalorian</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-arcane"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#ff6f00,#e91e63,#1a237e)"></div><span>Arcane</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-dark"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#0a0a0a,#1b2631,#f1c40f)"></div><span>Dark</span></div>
+                            <div class="sd-wp-card" data-wallpaper="series-loki"><div class="sd-wp-preview" style="background:linear-gradient(135deg,#1b5e20,#4caf50,#ffd54f)"></div><span>Loki</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Patterns -->
+                    <div class="sd-wp-panel" id="wp-tab-patterns" style="display:none">
+                        <div class="sd-wallpaper-grid">
+                            <div class="sd-wp-card" data-wallpaper="pattern-dots"><div class="sd-wp-preview sd-wp-pat-dots"></div><span>Dots</span></div>
+                            <div class="sd-wp-card" data-wallpaper="pattern-grid"><div class="sd-wp-preview sd-wp-pat-grid"></div><span>Grid</span></div>
+                            <div class="sd-wp-card" data-wallpaper="pattern-zigzag"><div class="sd-wp-preview sd-wp-pat-zigzag"></div><span>Zigzag</span></div>
+                            <div class="sd-wp-card" data-wallpaper="pattern-chat"><div class="sd-wp-preview sd-wp-pat-chat"></div><span>Bubbles</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Custom / Browse -->
+                    <div class="sd-wp-panel" id="wp-tab-custom" style="display:none">
+                        <div class="wp-browse-search">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="wp-browse-input" placeholder="Search wallpapers... (e.g. naruto, batman, nature)" />
+                            <button class="sd-btn sd-btn-apply" id="wp-browse-search-btn">Search</button>
+                        </div>
+                        <div class="wp-browse-tags" id="wp-browse-tags">
+                            <button class="wp-tag" data-q="anime">Anime</button>
+                            <button class="wp-tag" data-q="naruto">Naruto</button>
+                            <button class="wp-tag" data-q="dragon ball">Dragon Ball</button>
+                            <button class="wp-tag" data-q="one piece">One Piece</button>
+                            <button class="wp-tag" data-q="demon slayer">Demon Slayer</button>
+                            <button class="wp-tag" data-q="attack on titan">AoT</button>
+                            <button class="wp-tag" data-q="jujutsu kaisen">JJK</button>
+                            <button class="wp-tag" data-q="chainsaw man">Chainsaw Man</button>
+                            <button class="wp-tag" data-q="spy x family">Spy×Family</button>
+                            <button class="wp-tag" data-q="ghibli">Ghibli</button>
+                            <button class="wp-tag" data-q="evangelion">Evangelion</button>
+                            <button class="wp-tag" data-q="death note">Death Note</button>
+                            <button class="wp-tag" data-q="bleach anime">Bleach</button>
+                            <button class="wp-tag" data-q="solo leveling">Solo Leveling</button>
+                            <button class="wp-tag" data-q="marvel">Marvel</button>
+                            <button class="wp-tag" data-q="batman">Batman</button>
+                            <button class="wp-tag" data-q="spider-man">Spider-Man</button>
+                            <button class="wp-tag" data-q="iron man">Iron Man</button>
+                            <button class="wp-tag" data-q="star wars">Star Wars</button>
+                            <button class="wp-tag" data-q="harry potter">Harry Potter</button>
+                            <button class="wp-tag" data-q="lord of the rings">LOTR</button>
+                            <button class="wp-tag" data-q="the matrix">Matrix</button>
+                            <button class="wp-tag" data-q="john wick">John Wick</button>
+                            <button class="wp-tag" data-q="stranger things">Stranger Things</button>
+                            <button class="wp-tag" data-q="breaking bad">Breaking Bad</button>
+                            <button class="wp-tag" data-q="game of thrones">GoT</button>
+                            <button class="wp-tag" data-q="squid game">Squid Game</button>
+                            <button class="wp-tag" data-q="wednesday">Wednesday</button>
+                            <button class="wp-tag" data-q="arcane">Arcane</button>
+                            <button class="wp-tag" data-q="peaky blinders">Peaky Blinders</button>
+                            <button class="wp-tag" data-q="landscape">Landscape</button>
+                            <button class="wp-tag" data-q="cyberpunk">Cyberpunk</button>
+                            <button class="wp-tag" data-q="dark aesthetic">Dark</button>
+                            <button class="wp-tag" data-q="minimalist">Minimal</button>
+                            <button class="wp-tag" data-q="nature">Nature</button>
+                            <button class="wp-tag" data-q="space">Space</button>
+                            <button class="wp-tag" data-q="car">Cars</button>
+                        </div>
+                        <div class="wp-browse-grid" id="wp-browse-grid"></div>
+                        <div class="wp-browse-loading" id="wp-browse-loading" style="display:none">
+                            <div class="wp-spinner"></div>
+                            <span>Searching wallpapers...</span>
+                        </div>
+                        <div class="wp-browse-empty" id="wp-browse-empty">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <p>Search for wallpapers or click a tag above</p>
+                        </div>
+                        <button class="sd-btn sd-btn-apply wp-load-more" id="wp-load-more" style="display:none;width:100%;margin-top:12px">Load more</button>
+                        <div class="wp-browse-divider"></div>
+                        <div class="wp-browse-custom-section">
+                            <div class="sd-group-title">Or paste a URL</div>
+                            <div class="sd-custom-wp-row">
+                                <input class="auth-input" id="custom-wp-url" placeholder="https://example.com/wallpaper.jpg" style="margin:0;flex:1" />
+                                <button class="sd-btn sd-btn-apply" id="custom-wp-apply">Apply</button>
+                            </div>
+                            <div class="sd-custom-wp-preview" id="custom-wp-preview" style="display:none">
+                                <img id="custom-wp-img" />
+                                <button class="sd-btn sd-btn-danger" id="custom-wp-remove" style="margin-top:8px;width:100%">Remove custom wallpaper</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Display</div>
+                    <div class="sd-select-row">
+                        <span class="sd-toggle-label">Font size</span>
+                        <select class="sd-select" id="set-font-size"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select>
+                    </div>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Input</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Send with Enter</span><span class="sd-toggle-desc">Press Enter to send, Shift+Enter for new line</span></span>
+                        <input type="checkbox" id="set-enter-send" checked /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Media auto-download</span><span class="sd-toggle-desc">Automatically download images and files</span></span>
+                        <input type="checkbox" id="set-auto-download" checked /><span class="sd-switch"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="settings-section" id="settings-notifications" style="display:none">
+                <div class="sd-header">
+                    <h2>Notifications</h2>
+                    <p>Messages, groups and sounds</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Alerts</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Message notifications</span><span class="sd-toggle-desc">Show desktop notifications for new messages</span></span>
+                        <input type="checkbox" id="set-msg-notif" checked /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Notification preview</span><span class="sd-toggle-desc">Show message content in notifications</span></span>
+                        <input type="checkbox" id="set-notif-preview" checked /><span class="sd-switch"></span>
+                    </label>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Sounds</div>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Message sounds</span><span class="sd-toggle-desc">Play a sound for incoming messages</span></span>
+                        <input type="checkbox" id="set-msg-sound" checked /><span class="sd-switch"></span>
+                    </label>
+                    <label class="sd-toggle">
+                        <span class="sd-toggle-info"><span class="sd-toggle-label">Notification sound</span><span class="sd-toggle-desc">Play a sound for desktop notifications</span></span>
+                        <input type="checkbox" id="set-notif-sound" checked /><span class="sd-switch"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div class="settings-section" id="settings-shortcuts" style="display:none">
+                <div class="sd-header">
+                    <h2>Keyboard shortcuts</h2>
+                    <p>Quick actions for power users</p>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Messages</div>
+                    <div class="sd-shortcut"><span>Send message</span><span class="sd-keys"><kbd>Enter</kbd></span></div>
+                    <div class="sd-shortcut"><span>New line</span><span class="sd-keys"><kbd>Shift</kbd> + <kbd>Enter</kbd></span></div>
+                    <div class="sd-shortcut"><span>Attach file</span><span class="sd-keys"><kbd>Ctrl</kbd> + <kbd>U</kbd></span></div>
+                    <div class="sd-shortcut"><span>Emoji picker</span><span class="sd-keys"><kbd>Ctrl</kbd> + <kbd>E</kbd></span></div>
+                </div>
+                <div class="sd-group">
+                    <div class="sd-group-title">Navigation</div>
+                    <div class="sd-shortcut"><span>Search messages</span><span class="sd-keys"><kbd>Ctrl</kbd> + <kbd>F</kbd></span></div>
+                    <div class="sd-shortcut"><span>Settings</span><span class="sd-keys"><kbd>Ctrl</kbd> + <kbd>,</kbd></span></div>
+                    <div class="sd-shortcut"><span>Next room</span><span class="sd-keys"><kbd>Alt</kbd> + <kbd>↓</kbd></span></div>
+                    <div class="sd-shortcut"><span>Previous room</span><span class="sd-keys"><kbd>Alt</kbd> + <kbd>↑</kbd></span></div>
+                </div>
+            </div>
+
+
+        </div>
+        <div id="chat-view" style="display:none">
+            <div id="header">
+                <button class="hdr-btn mobile-back" id="mobile-back-btn" title="Back" aria-label="Back to rooms"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                <div class="room-icon">#</div>
+                <div class="room-details">
+                    <div class="room-name" id="current-room"></div>
+                    <div class="room-meta">Signed in as <span id="current-user"></span></div>
+                </div>
+                <button class="hdr-btn" id="search-toggle" title="Search" aria-label="Search messages"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+                <button class="hdr-btn" id="users-toggle" title="Online users" aria-label="Online users"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+            </div>
+            <div id="search-bar">
+                <input id="search-input" placeholder="Search messages…" aria-label="Search messages" />
+                <span id="search-count"></span>
+                <button class="cancel-btn" id="search-close" aria-label="Close search">✕</button>
+            </div>
+            <div id="users-panel">
+                <h3>Online — <span id="users-count-header">0</span></h3>
+                <ul class="users-list" id="users-list-header" role="list" aria-label="Online users list"></ul>
+            </div>
+            <ul id="messages" role="log" aria-label="Chat messages">
+                <li class="skeleton-msg left"><div class="sk-line" style="width:70%"></div><div class="sk-line" style="width:50%"></div></li>
+                <li class="skeleton-msg right"><div class="sk-line" style="width:60%"></div><div class="sk-line" style="width:40%"></div></li>
+                <li class="skeleton-msg left"><div class="sk-line" style="width:80%"></div><div class="sk-line" style="width:55%"></div></li>
+                <li class="skeleton-msg right"><div class="sk-line" style="width:50%"></div><div class="sk-line" style="width:35%"></div></li>
+                <li class="skeleton-msg left"><div class="sk-line" style="width:65%"></div><div class="sk-line" style="width:45%"></div></li>
+                <div id="drop-zone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Drop file to upload</div>
+                <button id="scroll-bottom" aria-label="Scroll to bottom">↓</button>
+            </ul>
+            <div id="typing-indicator" aria-live="polite"></div>
+            <div id="reply-preview">
+                <span>↩</span>
+                <div class="reply-info">
+                    <div class="reply-label" id="reply-label"></div>
+                    <div class="reply-snippet" id="reply-snippet"></div>
+                </div>
+                <button class="cancel-btn" id="cancel-reply" aria-label="Cancel reply">✕</button>
+            </div>
+            <div id="file-preview">
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
+                <span class="file-name" id="file-name"></span>
+                <button class="cancel-btn" id="remove-file" aria-label="Remove file">✕</button>
+            </div>
+            <div id="voice-indicator">
+                <span class="pulse"></span>
+                <span>Recording… <span id="voice-time">0s</span></span>
+                <button class="cancel-btn" id="cancel-voice" aria-label="Cancel recording">✕</button>
+            </div>
+            <div id="emoji-picker" role="dialog" aria-label="Emoji picker"><div class="emoji-grid" id="emoji-grid" role="grid" aria-label="Available emojis"></div></div>
+            <form id="form">
+                <input type="file" id="file-input" accept="image/*,audio/*,video/*,application/*,text/*" />
+                <button type="button" class="inp-btn" id="file-button" title="Attach" aria-label="Attach file"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                <button type="button" class="inp-btn" id="emoji-btn" title="Emoji" aria-label="Emoji picker"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
+                <button type="button" class="inp-btn" id="voice-btn" title="Voice message" aria-label="Record voice message"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+                <input id="input" autocomplete="off" placeholder="Write a message…" aria-label="Type a message" />
+                <button type="submit" id="send-btn" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
-<!-- Chat -->
-<div id="chat-container">
-    <div id="header">
-        <div class="room-icon">#</div>
-        <div class="room-details">
-            <div class="room-name" id="current-room"></div>
-            <div class="room-meta">Signed in as <span id="current-user"></span></div>
-        </div>
-        <button class="hdr-btn" id="search-toggle" title="Search">🔍</button>
-        <button class="hdr-btn" id="users-toggle" title="Online users">👥</button>
-        <button class="hdr-btn" id="theme-toggle" title="Theme">🎨</button>
-        <button class="hdr-btn" id="room-switch-btn" title="Back to rooms">←</button>
-    </div>
-
-    <div id="theme-menu">
-        <div class="theme-option" data-theme="light"><span class="theme-dot" style="background:#f0f2f5;border:1px solid #ccc"></span>Light</div>
-        <div class="theme-option" data-theme="dark"><span class="theme-dot" style="background:#111827"></span>Dark</div>
-        <div class="theme-option" data-theme="nord"><span class="theme-dot" style="background:#2e3440"></span>Nord</div>
-        <div class="theme-option" data-theme="dracula"><span class="theme-dot" style="background:#282a36"></span>Dracula</div>
-    </div>
-
-    <div id="search-bar">
-        <input id="search-input" placeholder="Search messages…" />
-        <span id="search-count"></span>
-        <button class="cancel-btn" id="search-close">✕</button>
-    </div>
-
-    <div id="users-panel">
-        <h3>Online — <span id="users-count">0</span></h3>
-        <ul class="users-list" id="users-list"></ul>
-    </div>
-
-    <ul id="messages">
-        <li class="skeleton-msg left"><div class="sk-line" style="width:70%"></div><div class="sk-line" style="width:50%"></div></li>
-        <li class="skeleton-msg right"><div class="sk-line" style="width:60%"></div><div class="sk-line" style="width:40%"></div></li>
-        <li class="skeleton-msg left"><div class="sk-line" style="width:80%"></div><div class="sk-line" style="width:55%"></div></li>
-        <li class="skeleton-msg right"><div class="sk-line" style="width:50%"></div><div class="sk-line" style="width:35%"></div></li>
-        <li class="skeleton-msg left"><div class="sk-line" style="width:65%"></div><div class="sk-line" style="width:45%"></div></li>
-        <div id="drop-zone">📁 Drop file to upload</div>
-        <button id="scroll-bottom">↓</button>
-    </ul>
-
-    <div id="typing-indicator"></div>
-
-    <div id="reply-preview">
-        <span>↩</span>
-        <div class="reply-info">
-            <div class="reply-label" id="reply-label"></div>
-            <div class="reply-snippet" id="reply-snippet"></div>
-        </div>
-        <button class="cancel-btn" id="cancel-reply">✕</button>
-    </div>
-
-    <div id="file-preview">
-        <span>📎</span>
-        <span class="file-name" id="file-name"></span>
-        <button class="cancel-btn" id="remove-file">✕</button>
-    </div>
-
-    <div id="voice-indicator">
-        <span class="pulse"></span>
-        <span>Recording… <span id="voice-time">0s</span></span>
-        <button class="cancel-btn" id="cancel-voice">✕</button>
-    </div>
-
-    <div id="emoji-picker"><div class="emoji-grid" id="emoji-grid"></div></div>
-
-    <form id="form">
-        <input type="file" id="file-input" accept="image/*,audio/*,video/*,application/*,text/*" />
-        <button type="button" class="inp-btn" id="file-button" title="Attach">📎</button>
-        <button type="button" class="inp-btn" id="emoji-btn" title="Emoji">😊</button>
-        <button type="button" class="inp-btn" id="voice-btn" title="Voice message">🎤</button>
-        <input id="input" autocomplete="off" placeholder="Write a message…" />
-        <button type="submit" id="send-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-    </form>
-</div>
+<!-- Hidden compat elements -->
+<div id="room-overlay" style="display:none!important"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script>
-// ── Service Worker ──
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-
-// ── Notification permission ──
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-}
-
-let socket, username, room, authToken;
-
-// ── Helpers ──
-function escapeHtml(s) {
-    if (!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-const avatarColors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316','#6366f1','#14b8a6'];
-function getColor(name) { let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); return avatarColors[Math.abs(h)%avatarColors.length]; }
-function formatSize(b) { if(!b)return '0 B'; const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k)); return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]; }
-
-// ── Markdown-lite ──
-function renderMarkdown(text) {
-    let t = escapeHtml(text);
-    t = t.replace(/```([^`]+)```/g, '<code style="display:block;background:rgba(0,0,0,.08);padding:6px 8px;border-radius:6px;font-size:.8rem;white-space:pre-wrap;margin:4px 0">$1</code>');
-    t = t.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px;font-size:.82rem">$1</code>');
-    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    // Auto-link URLs
-    t = t.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;opacity:.9">$1</a>');
-    return t;
-}
-
-// ── Sound ──
-let audioCtx;
-function playSound() {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.frequency.value = 800; o.type = 'sine';
-        g.gain.setValueAtTime(0.06, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-        o.start(); o.stop(audioCtx.currentTime + 0.12);
-    } catch(e){}
-}
-
-// ── Unread ──
-let unreadCount = 0;
-function incrementUnread() { if(document.hidden){unreadCount++;document.title=`(${unreadCount}) Chat`;} }
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) { unreadCount=0; document.title='Chat'; if(room) socket.emit('mark seen',{room}); }
-});
-
-// ── Theme ──
-const themeToggle = document.getElementById('theme-toggle');
-const themeMenu = document.getElementById('theme-menu');
-function setTheme(t) { document.documentElement.setAttribute('data-theme',t); localStorage.setItem('theme',t); themeMenu.classList.remove('open'); }
-setTheme(localStorage.getItem('theme')||'light');
-themeToggle.addEventListener('click', (e) => { e.stopPropagation(); themeMenu.classList.toggle('open'); });
-document.querySelectorAll('.theme-option').forEach(el => el.addEventListener('click', () => setTheme(el.dataset.theme)));
-
-// ── Auth ──
-let isSignup = true;
-const authOverlay = document.getElementById('auth-overlay');
-const roomOverlay = document.getElementById('room-overlay');
-const authBtn = document.getElementById('auth-btn');
-const authError = document.getElementById('auth-error');
-
-function toggleAuthMode() {
-    isSignup = !isSignup;
-    document.getElementById('auth-title').textContent = isSignup ? 'Sign Up' : 'Log In';
-    document.getElementById('auth-subtitle').textContent = isSignup ? 'Create an account to start chatting' : 'Welcome back';
-    authBtn.textContent = isSignup ? 'Sign Up' : 'Log In';
-    document.getElementById('auth-toggle-text').textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
-    document.getElementById('auth-toggle-link').textContent = isSignup ? 'Log In' : 'Sign Up';
-    authError.textContent = '';
-}
-document.getElementById('auth-toggle-link').addEventListener('click', toggleAuthMode);
-
-// Auto-login
-const savedToken = localStorage.getItem('chat_token');
-const savedUser = localStorage.getItem('chat_user');
-if (savedToken && savedUser) {
-    authToken = savedToken; username = savedUser;
-    authOverlay.style.display = 'none';
-    connectSocket();
-    showRoomSelect();
-}
-
-authBtn.addEventListener('click', async () => {
-    const u = document.getElementById('auth-username').value.trim();
-    const p = document.getElementById('auth-password').value.trim();
-    authError.textContent = '';
-    if (!u || !p) { authError.textContent = 'Fill in all fields'; return; }
-    try {
-        const res = await fetch(`/api/${isSignup?'signup':'login'}`, {
-            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u,password:p})
-        });
-        const data = await res.json();
-        if (!res.ok) { authError.textContent = data.error; return; }
-        authToken = data.token; username = data.username;
-        localStorage.setItem('chat_token', authToken);
-        localStorage.setItem('chat_user', username);
-        authOverlay.style.display = 'none';
-        connectSocket();
-        showRoomSelect();
-    } catch(e) { authError.textContent = 'Network error'; }
-});
-document.querySelectorAll('#auth-username,#auth-password').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') authBtn.click(); }));
-
-function connectSocket() {
-    socket = io({ auth: { token: authToken } });
-    socket.on('connect_error', (err) => {
-        if (err.message === 'Authentication required' || err.message === 'Invalid token') {
-            localStorage.removeItem('chat_token'); localStorage.removeItem('chat_user');
-            location.reload();
-        }
-    });
-    setupSocketEvents();
-}
-
-// ── Room Selection ──
-async function showRoomSelect() {
-    roomOverlay.style.display = 'flex';
-    document.getElementById('room-username').textContent = username;
-    try {
-        const res = await fetch('/api/rooms');
-        const rooms = await res.json();
-        const list = document.getElementById('room-list');
-        const defaultRooms = [{name:'General',hasPassword:false,creator:'system'},{name:'Random',hasPassword:false,creator:'system'}];
-        const allRooms = [...defaultRooms];
-        rooms.forEach(r => { if(!allRooms.find(d => d.name === r.name)) allRooms.push(r); });
-        list.innerHTML = allRooms.map(r => `
-            <li class="room-item" data-room="${escapeHtml(r.name)}" data-locked="${r.hasPassword}">
-                <span class="ri-icon">#</span>
-                <span class="ri-name">${escapeHtml(r.name)}</span>
-                ${r.hasPassword ? '<span class="ri-lock">🔒</span>' : ''}
-                ${r.creator !== 'system' ? `<button class="room-delete-btn" data-del="${escapeHtml(r.name)}" title="Delete room">🗑️</button>` : ''}
-            </li>
-        `).join('');
-        // Click room name to join
-        list.querySelectorAll('.room-item').forEach(el => el.addEventListener('click', (e) => {
-            if (e.target.classList.contains('room-delete-btn')) return;
-            const name = el.dataset.room;
-            const locked = el.dataset.locked === 'true';
-            if (locked) {
-                showPasswordModal(name);
-            } else {
-                joinRoom(name, null);
-            }
-        }));
-        // Delete room
-        list.querySelectorAll('.room-delete-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const name = btn.dataset.del;
-            if (confirm(`Delete room "${name}"? All messages will be lost.`)) {
-                socket.emit('delete room', { name });
-            }
-        }));
-    } catch(e) {}
-}
-
-// ── Password Modal ──
-let pendingRoom = null;
-const pwModal = document.getElementById('password-modal');
-const pwInput = document.getElementById('pw-modal-input');
-const pwError = document.getElementById('pw-modal-error');
-
-function showPasswordModal(roomName) {
-    pendingRoom = roomName;
-    document.getElementById('pw-modal-room').textContent = `Enter password for "${roomName}"`;
-    pwInput.value = '';
-    pwError.textContent = '';
-    pwModal.style.display = 'flex';
-    pwInput.focus();
-}
-
-document.getElementById('pw-modal-join').addEventListener('click', () => {
-    const pass = pwInput.value.trim();
-    if (!pass) { pwError.textContent = 'Password is required'; return; }
-    pwModal.style.display = 'none';
-    joinRoom(pendingRoom, pass);
-});
-
-document.getElementById('pw-modal-cancel').addEventListener('click', () => {
-    pwModal.style.display = 'none';
-    pendingRoom = null;
-});
-
-pwInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('pw-modal-join').click();
-});
-
-document.getElementById('create-room-btn').addEventListener('click', () => {
-    const name = document.getElementById('new-room-name').value.trim();
-    if (!name) return;
-    const pass = document.getElementById('new-room-pass').value.trim();
-    socket.emit('create room', { name, password: pass || null });
-});
-
-// Join existing room by name + password
-document.getElementById('join-room-btn').addEventListener('click', () => {
-    const name = document.getElementById('join-room-name').value.trim();
-    if (!name) { document.getElementById('room-error').textContent = 'Enter a room name'; return; }
-    const pass = document.getElementById('join-room-pass').value.trim();
-    document.getElementById('room-error').textContent = '';
-    joinRoom(name, pass || null);
-});
-
-// Chat header back button — return to room select
-document.getElementById('room-switch-btn').addEventListener('click', () => {
-    document.getElementById('chat-container').style.display = 'none';
-    showRoomSelect();
-});
-
-// Room page — Back (go to login)
-document.getElementById('room-back-btn').addEventListener('click', () => {
-    if (!confirm('Go back to login screen?')) return;
-    localStorage.removeItem('chat_token');
-    localStorage.removeItem('chat_user');
-    if (socket) socket.disconnect();
-    location.reload();
-});
-
-// Room page — Home (reload room list)
-document.getElementById('room-home-btn').addEventListener('click', () => {
-    showRoomSelect();
-});
-
-// Room page — Logout
-document.getElementById('room-logout-btn').addEventListener('click', () => {
-    if (!confirm('Are you sure you want to logout?')) return;
-    localStorage.removeItem('chat_token');
-    localStorage.removeItem('chat_user');
-    if (socket) socket.disconnect();
-    location.reload();
-});
-
-function joinRoom(name, password) {
-    room = name;
-    roomOverlay.style.display = 'none';
-    document.getElementById('chat-container').style.display = 'flex';
-    document.getElementById('current-room').textContent = room;
-    document.getElementById('current-user').textContent = username;
-    messages.innerHTML = `
-        <li class="skeleton-msg left"><div class="sk-line" style="width:70%"></div><div class="sk-line"></div></li>
-        <li class="skeleton-msg right"><div class="sk-line" style="width:60%"></div><div class="sk-line"></div></li>
-        <li class="skeleton-msg left"><div class="sk-line" style="width:80%"></div><div class="sk-line"></div></li>
-    `;
-    lastDateStr = null; oldestTimestamp = null; hasMore = true; historyLoaded = false;
-    socket.emit('join room', { room: name, password });
-    input.focus();
-}
-
-// ── Elements ──
-const form = document.getElementById('form');
-const input = document.getElementById('input');
-const messages = document.getElementById('messages');
-const typingIndicator = document.getElementById('typing-indicator');
-const fileInput = document.getElementById('file-input');
-const lightbox = document.getElementById('lightbox');
-const lightboxImg = document.getElementById('lightbox-img');
-const scrollBottomBtn = document.getElementById('scroll-bottom');
-
-let typingTimer, selectedFile = null, replyTarget = null;
-let lastDateStr = null, oldestTimestamp = null, hasMore = true, loadingMore = false, historyLoaded = false;
-let contextMsgId = null, contextMsgUser = null, contextMsgText = null;
-
-// ── Link preview cache ──
-const linkPreviews = new Map();
-async function fetchLinkPreview(url, container) {
-    if (linkPreviews.has(url)) { renderPreview(linkPreviews.get(url), container); return; }
-    try {
-        const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.title) { linkPreviews.set(url, data); renderPreview(data, container); }
-    } catch(e){}
-}
-function renderPreview(data, container) {
-    const el = document.createElement('a');
-    el.className = 'link-preview'; el.href = data.url; el.target = '_blank'; el.rel = 'noopener';
-    el.innerHTML = (data.image ? `<img class="lp-img" src="${escapeHtml(data.image)}" loading="lazy">` : '')
-        + `<div class="lp-title">${escapeHtml(data.title)}</div>`
-        + (data.description ? `<div class="lp-desc">${escapeHtml(data.description)}</div>` : '');
-    container.appendChild(el);
-}
-
-function setupSocketEvents() {
-    socket.on('load messages', (docs) => {
-        document.querySelectorAll('.skeleton-msg').forEach(s => s.remove());
-        historyLoaded = true; lastDateStr = null;
-        if (docs.length < 50) hasMore = false;
-        docs.forEach(msg => displayMessage(msg));
-        socket.emit('mark seen', { room });
-    });
-
-    socket.on('chat message', (msg) => {
-        displayMessage(msg);
-        if (msg.user !== username) {
-            playSound(); incrementUnread();
-            if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                new Notification(msg.user, { body: msg.text || '📎 File', icon: '💬' });
-            }
-            socket.emit('deliver message', { _id: msg._id, room });
-        }
-    });
-
-    socket.on('more messages', (docs) => {
-        loadingMore = false;
-        const spinner = document.getElementById('load-more-spinner');
-        if (spinner) spinner.style.display = 'none';
-        if (docs.length < 30) hasMore = false;
-        if (!docs.length) return;
-        const sh = messages.scrollHeight;
-        const first = messages.firstElementChild;
-        let prevDate = null;
-        docs.forEach(msg => {
-            const label = getDateLabel(msg.timestamp);
-            if (label !== prevDate) {
-                const sep = document.createElement('li'); sep.className='date-separator'; sep.textContent=label;
-                messages.insertBefore(sep, first); prevDate = label;
-            }
-            displayMessage(msg, true, first);
-        });
-        messages.scrollTop = messages.scrollHeight - sh;
-    });
-
-    socket.on('message status', (d) => {
-        const el = document.querySelector(`[data-status-id="${d._id}"]`);
-        if (el) el.textContent = d.status === 'delivered' ? '✓✓' : '✓';
-    });
-
-    socket.on('message edited', (d) => {
-        const el = document.querySelector(`[data-msg-id="${d._id}"]`);
-        if (!el) return;
-        const textDiv = el.querySelector('.msg-text');
-        if (textDiv) textDiv.innerHTML = renderMarkdown(d.text);
-        if (!el.querySelector('.edited-tag')) {
-            const info = el.querySelector('.message-info');
-            if (info) { const tag = document.createElement('span'); tag.className='edited-tag'; tag.textContent='(edited)'; info.appendChild(tag); }
-        }
-    });
-
-    socket.on('message deleted', (d) => {
-        const el = document.querySelector(`[data-msg-id="${d._id}"]`);
-        if (!el) return;
-        el.classList.add('deleted-msg');
-        el.innerHTML = '<div class="message-info" style="opacity:.5">Message deleted</div>';
-    });
-
-    socket.on('message reactions', (d) => {
-        const el = document.querySelector(`[data-msg-id="${d._id}"]`);
-        if (!el) return;
-        let bar = el.querySelector('.reactions-bar');
-        if (!bar) { bar = document.createElement('div'); bar.className='reactions-bar'; el.appendChild(bar); }
-        bar.innerHTML = d.reactions.filter(r => r.users.length > 0).map(r =>
-            `<span class="reaction-chip ${r.users.includes(username)?'own-reaction':''}" data-emoji="${r.emoji}" data-mid="${d._id}">${r.emoji}<span class="rc-count">${r.users.length}</span></span>`
-        ).join('');
-        bar.querySelectorAll('.reaction-chip').forEach(c => c.addEventListener('click', () => {
-            socket.emit('add reaction', { _id: c.dataset.mid, emoji: c.dataset.emoji });
-        }));
-    });
-
-    socket.on('messages seen', (d) => {
-        document.querySelectorAll('.seen-info').forEach(el => el.remove());
-        const msgs = document.querySelectorAll('.msg-wrapper.own .message');
-        const last = msgs[msgs.length - 1];
-        if (last) {
-            const s = document.createElement('div'); s.className='seen-info'; s.textContent=`Seen by ${d.user}`;
-            last.appendChild(s);
-        }
-    });
-
-    socket.on('typing', (d) => {
-        if (d.user !== username) {
-            typingIndicator.innerHTML = `<span>${escapeHtml(d.user)}</span><span class="typing-dots"><span></span><span></span><span></span></span>`;
-        }
-    });
-    socket.on('stop typing', (d) => { if(d.user!==username) typingIndicator.innerHTML=''; });
-
-    socket.on('rate limited', () => { showToast('rate-toast'); });
-
-    socket.on('users list', (users) => {
-        document.getElementById('users-count').textContent = users.length;
-        document.getElementById('users-list').innerHTML = users.map(u => {
-            const c = getColor(u);
-            return `<li class="user-chip" data-user="${escapeHtml(u)}"><span class="avatar-sm" style="background:${c}">${escapeHtml(u[0].toUpperCase())}</span>${escapeHtml(u)}</li>`;
-        }).join('');
-        // Click user for DM
-        document.querySelectorAll('.user-chip').forEach(el => el.addEventListener('click', () => {
-            const target = el.dataset.user;
-            if (target === username) return;
-            const dmRoom = [username, target].sort().join(':dm:');
-            joinRoom(dmRoom, null);
-        }));
-    });
-
-    socket.on('room created', (d) => { showRoomSelect(); });
-    socket.on('room deleted', (d) => { if(d.name===room){room=null; showRoomSelect();} });
-    socket.on('room error', (d) => {
-        // If we're in the chat view, go back to room select
-        document.getElementById('chat-container').style.display = 'none';
-        showRoomSelect();
-        setTimeout(() => {
-            document.getElementById('room-error').textContent = d.message;
-        }, 100);
-    });
-
-    socket.on('search results', (docs) => {
-        document.getElementById('search-count').textContent = `${docs.length} result${docs.length!==1?'s':''}`;
-        // Highlight matches in chat
-        document.querySelectorAll('.message.search-hit').forEach(el => el.classList.remove('search-hit'));
-        docs.forEach(d => {
-            const el = document.querySelector(`[data-msg-id="${d._id}"]`);
-            if (el) { el.classList.add('search-hit'); el.style.outline = `2px solid var(--primary)`; }
-        });
-    });
-
-    // ── Reconnection ──
-    const banner = document.getElementById('reconnect-banner');
-    socket.on('disconnect', () => { banner.textContent='Connection lost. Reconnecting…'; banner.className='warn'; });
-    socket.on('connect', () => {
-        if (banner.classList.contains('warn')) {
-            banner.textContent='Reconnected!'; banner.className='ok';
-            if (room) socket.emit('join room', { room });
-            setTimeout(() => { banner.className=''; banner.style.display='none'; }, 2000);
-        }
-    });
-}
-
-function showToast(id, msg) {
-    const t = document.getElementById(id);
-    if (msg) t.textContent = msg;
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 2500);
-}
-
-// ── Date helpers ──
-function getDateLabel(ts) {
-    const d = new Date(ts), today = new Date(), yest = new Date();
-    yest.setDate(today.getDate()-1);
-    if (d.toDateString()===today.toDateString()) return 'Today';
-    if (d.toDateString()===yest.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-}
-
-// ── Display Message ──
-let prevMsgUser = null;
-function displayMessage(msg, prepend = false, refNode = null) {
-    if (!prepend) {
-        const label = getDateLabel(msg.timestamp);
-        if (label !== lastDateStr) {
-            const sep = document.createElement('li'); sep.className='date-separator'; sep.textContent=label;
-            messages.appendChild(sep); lastDateStr = label;
-        }
-    }
-
-    const isOwn = msg.user === username;
-    const isGrouped = !prepend && prevMsgUser === msg.user;
-    if (!prepend) prevMsgUser = msg.user;
-
-    const wrapper = document.createElement('li');
-    wrapper.className = `msg-wrapper ${isOwn?'own':'other'} ${isGrouped?'grouped':''}`;
-
-    let avatarHtml = '';
-    if (!isOwn) {
-        const c = getColor(msg.user);
-        avatarHtml = `<div class="avatar-msg" style="background:${c}">${escapeHtml(msg.user[0].toUpperCase())}</div>`;
-    }
-
-    const statusHtml = isOwn ? `<span class="msg-status" data-status-id="${msg._id}">${msg.status==='delivered'?'✓✓':'✓'}</span>` : '';
-    const editedHtml = msg.edited ? '<span class="edited-tag">(edited)</span>' : '';
-
-    let content = '';
-    if (msg.deleted) {
-        content = '<div class="message-info" style="opacity:.5">Message deleted</div>';
-    } else {
-        content = `<div class="message-info"><strong>${escapeHtml(msg.user)}</strong> · ${escapeHtml(msg.time)} ${statusHtml} ${editedHtml}</div>`;
-        if (msg.replyTo && msg.replyTo.user) {
-            content += `<div class="reply-quote"><div class="rq-user">${escapeHtml(msg.replyTo.user)}</div><div class="rq-text">${escapeHtml(msg.replyTo.text)}</div></div>`;
-        }
-        if (msg.text) {
-            content += `<div class="msg-text">${renderMarkdown(msg.text)}</div>`;
-        }
-        if (msg.file) {
-            if (msg.file.mimetype && msg.file.mimetype.startsWith('image/')) {
-                content += `<img class="chat-img" src="${escapeHtml(msg.file.url)}" alt="${escapeHtml(msg.file.originalname)}" loading="lazy">`;
-            } else if (msg.file.mimetype && msg.file.mimetype.startsWith('audio/')) {
-                content += `<audio controls src="${escapeHtml(msg.file.url)}" style="max-width:200px;margin-top:4px"></audio>`;
-            } else {
-                content += `<a class="file-link" href="${escapeHtml(msg.file.url)}" download="${escapeHtml(msg.file.originalname)}">📄 ${escapeHtml(msg.file.originalname)} (${formatSize(msg.file.size)})</a>`;
-            }
-        }
-        if (msg.reactions && msg.reactions.length) {
-            content += '<div class="reactions-bar">' + msg.reactions.filter(r=>r.users.length).map(r =>
-                `<span class="reaction-chip ${r.users.includes(username)?'own-reaction':''}" data-emoji="${r.emoji}" data-mid="${msg._id}">${r.emoji}<span class="rc-count">${r.users.length}</span></span>`
-            ).join('') + '</div>';
-        }
-    }
-
-    const bubble = document.createElement('div');
-    bubble.className = `message ${isOwn?'own':'other'} ${msg.deleted?'deleted-msg':''} ${isGrouped?'grouped-msg':''}`;
-    bubble.setAttribute('data-msg-id', msg._id);
-    bubble.innerHTML = content;
-
-    // Context menu on right-click
-    if (!msg.deleted) {
-        bubble.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            contextMsgId = msg._id; contextMsgUser = msg.user; contextMsgText = msg.text;
-            const ctx = document.getElementById('context-menu');
-            ctx.style.display = 'block';
-            ctx.style.left = Math.min(e.clientX, window.innerWidth - 170) + 'px';
-            ctx.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
-            // Show/hide edit/delete based on ownership
-            ctx.querySelector('[data-action="edit"]').style.display = isOwn ? '' : 'none';
-            ctx.querySelector('[data-action="delete"]').style.display = isOwn ? '' : 'none';
-        });
-
-        // Double-click for reaction picker
-        bubble.addEventListener('dblclick', (e) => {
-            const rp = document.getElementById('reaction-picker');
-            rp.classList.add('open');
-            rp.style.left = Math.min(e.clientX - 60, window.innerWidth - 220) + 'px';
-            rp.style.top = (e.clientY - 40) + 'px';
-            rp.dataset.mid = msg._id;
-        });
-    }
-
-    // Reaction chip clicks
-    bubble.querySelectorAll('.reaction-chip').forEach(c => c.addEventListener('click', () => {
-        socket.emit('add reaction', { _id: c.dataset.mid, emoji: c.dataset.emoji });
-    }));
-
-    wrapper.innerHTML = avatarHtml;
-    wrapper.appendChild(bubble);
-
-    if (prepend && refNode) {
-        messages.insertBefore(wrapper, refNode);
-    } else {
-        messages.appendChild(wrapper);
-        // Auto-scroll if near bottom
-        if (messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120) {
-            messages.scrollTop = messages.scrollHeight;
-        }
-    }
-
-    if (!oldestTimestamp || new Date(msg.timestamp) < new Date(oldestTimestamp)) {
-        oldestTimestamp = msg.timestamp;
-    }
-
-    // Fetch link previews
-    if (msg.text && !msg.deleted) {
-        const urls = msg.text.match(/https?:\/\/[^\s]+/g);
-        if (urls) urls.slice(0,1).forEach(url => fetchLinkPreview(url, bubble));
-    }
-}
-
-// ── Context Menu Actions ──
-document.addEventListener('click', () => { document.getElementById('context-menu').style.display='none'; document.getElementById('reaction-picker').classList.remove('open'); document.getElementById('theme-menu').classList.remove('open'); });
-document.querySelectorAll('.ctx-item').forEach(el => el.addEventListener('click', () => {
-    const action = el.dataset.action;
-    if (action === 'reply') {
-        replyTarget = { _id: contextMsgId, user: contextMsgUser, text: contextMsgText || '📎 File' };
-        document.getElementById('reply-label').textContent = `Replying to ${contextMsgUser}`;
-        document.getElementById('reply-snippet').textContent = replyTarget.text;
-        document.getElementById('reply-preview').style.display = 'flex';
-        input.focus();
-    } else if (action === 'edit') {
-        const newText = prompt('Edit message:', contextMsgText);
-        if (newText !== null && newText.trim()) socket.emit('edit message', { _id: contextMsgId, text: newText.trim() });
-    } else if (action === 'delete') {
-        if (confirm('Delete this message?')) socket.emit('delete message', { _id: contextMsgId });
-    }
-}));
-
-// Reaction picker
-document.querySelectorAll('.react-emoji').forEach(el => el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const rp = document.getElementById('reaction-picker');
-    socket.emit('add reaction', { _id: rp.dataset.mid, emoji: el.dataset.emoji });
-    rp.classList.remove('open');
-}));
-
-// ── Typing ──
-input.addEventListener('input', () => {
-    if (!socket || !room) return;
-    socket.emit('typing', { user: username, room });
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => socket.emit('stop typing', { user: username, room }), 1000);
-});
-
-// ── File ──
-document.getElementById('file-button').addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', (e) => {
-    selectedFile = e.target.files[0];
-    if (selectedFile) { document.getElementById('file-name').textContent=selectedFile.name; document.getElementById('file-preview').style.display='flex'; }
-});
-document.getElementById('remove-file').addEventListener('click', () => { selectedFile=null; fileInput.value=''; document.getElementById('file-preview').style.display='none'; });
-
-// ── Drag & Drop ──
-const dropZone = document.getElementById('drop-zone');
-messages.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
-messages.addEventListener('dragleave', () => dropZone.classList.remove('active'));
-messages.addEventListener('drop', (e) => {
-    e.preventDefault(); dropZone.classList.remove('active');
-    if (e.dataTransfer.files.length) {
-        selectedFile = e.dataTransfer.files[0];
-        document.getElementById('file-name').textContent = selectedFile.name;
-        document.getElementById('file-preview').style.display = 'flex';
-    }
-});
-
-// ── Voice Recording ──
-let mediaRecorder, audioChunks = [], voiceTimer, voiceSeconds = 0;
-const voiceBtn = document.getElementById('voice-btn');
-const voiceIndicator = document.getElementById('voice-indicator');
-
-voiceBtn.addEventListener('click', async () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop(); return;
-    }
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = []; voiceSeconds = 0;
-        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-            stream.getTracks().forEach(t => t.stop());
-            clearInterval(voiceTimer);
-            voiceIndicator.style.display = 'none';
-            voiceBtn.classList.remove('recording');
-            const blob = new Blob(audioChunks, { type: 'audio/webm' });
-            const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-            selectedFile = file;
-            document.getElementById('file-name').textContent = '🎤 Voice message';
-            document.getElementById('file-preview').style.display = 'flex';
-        };
-        mediaRecorder.start();
-        voiceBtn.classList.add('recording');
-        voiceIndicator.style.display = 'flex';
-        voiceTimer = setInterval(() => { voiceSeconds++; document.getElementById('voice-time').textContent=voiceSeconds+'s'; }, 1000);
-    } catch(e) { alert('Microphone access denied'); }
-});
-document.getElementById('cancel-voice').addEventListener('click', () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); }
-    voiceIndicator.style.display = 'none'; voiceBtn.classList.remove('recording');
-    clearInterval(voiceTimer); selectedFile = null;
-});
-
-// ── Reply ──
-document.getElementById('cancel-reply').addEventListener('click', () => { replyTarget=null; document.getElementById('reply-preview').style.display='none'; });
-
-// ── Emoji ──
-const emojis = ['😀','😂','😍','🥰','😎','🤔','😢','😡','👍','👎','❤️','🔥','🎉','✨','💯','🙏','👏','🤝','💪','🙌','😱','🤯','😴','🤮','🤡','👀','💀','☠️','🫡','🫠','😈','🥳','😇','🤩','🥺','😤','🫶','✅','❌','⭐','🌈','🎶','🍕','☕','🏆','💎','🚀','💡','📌','🔔'];
-const emojiGrid = document.getElementById('emoji-grid');
-emojis.forEach(e => {
-    const btn = document.createElement('button'); btn.type='button'; btn.className='emoji-item'; btn.textContent=e;
-    btn.addEventListener('click', () => {
-        const pos = input.selectionStart;
-        input.value = input.value.slice(0,pos)+e+input.value.slice(pos);
-        input.focus(); input.selectionStart=input.selectionEnd=pos+e.length;
-        document.getElementById('emoji-picker').classList.remove('open');
-    });
-    emojiGrid.appendChild(btn);
-});
-document.getElementById('emoji-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('emoji-picker').classList.toggle('open'); });
-document.addEventListener('click', (e) => {
-    const p = document.getElementById('emoji-picker');
-    if (!p.contains(e.target) && e.target.id !== 'emoji-btn') p.classList.remove('open');
-});
-
-// ── Lightbox ──
-lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
-document.addEventListener('keydown', (e) => { if(e.key==='Escape') lightbox.classList.remove('active'); });
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('chat-img')) { lightboxImg.src=e.target.src; lightbox.classList.add('active'); }
-});
-
-// ── Search ──
-const searchToggle = document.getElementById('search-toggle');
-const searchBar = document.getElementById('search-bar');
-const searchInput = document.getElementById('search-input');
-searchToggle.addEventListener('click', () => {
-    searchBar.classList.toggle('open');
-    searchToggle.classList.toggle('active');
-    if (searchBar.classList.contains('open')) searchInput.focus();
-    else {
-        searchInput.value = '';
-        document.getElementById('search-count').textContent = '';
-        document.querySelectorAll('.message.search-hit').forEach(el => { el.classList.remove('search-hit'); el.style.outline=''; });
-    }
-});
-document.getElementById('search-close').addEventListener('click', () => searchToggle.click());
-let searchTimer;
-searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        const q = searchInput.value.trim();
-        if (q && socket) socket.emit('search messages', { room, query: q });
-        else { document.getElementById('search-count').textContent=''; document.querySelectorAll('.message.search-hit').forEach(el => {el.classList.remove('search-hit');el.style.outline='';}); }
-    }, 400);
-});
-
-// ── Users panel ──
-document.getElementById('users-toggle').addEventListener('click', () => document.getElementById('users-panel').classList.toggle('open'));
-
-// ── Scroll to bottom ──
-messages.addEventListener('scroll', () => {
-    const atBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 100;
-    scrollBottomBtn.classList.toggle('visible', !atBottom);
-    // Pagination
-    if (messages.scrollTop < 50 && hasMore && !loadingMore && historyLoaded) {
-        loadingMore = true;
-        let spinner = document.getElementById('load-more-spinner');
-        if (!spinner) { spinner = document.createElement('li'); spinner.id='load-more-spinner'; spinner.textContent='Loading…'; messages.insertBefore(spinner, messages.firstChild); }
-        spinner.style.display = 'block';
-        socket.emit('load more messages', { room, before: oldestTimestamp });
-    }
-});
-scrollBottomBtn.addEventListener('click', () => { messages.scrollTop = messages.scrollHeight; });
-
-// ── Send ──
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!socket || !room) return;
-    const text = input.value.trim();
-    if (!text && !selectedFile) return;
-
-    let fileData = null;
-    if (selectedFile) {
-        const fd = new FormData(); fd.append('file', selectedFile);
-        try {
-            const res = await fetch('/upload', { method:'POST', body:fd });
-            if (!res.ok) { const err = await res.json(); alert(err.error||'Upload failed'); return; }
-            fileData = await res.json();
-        } catch(err) { console.error(err); return; }
-    }
-
-    const payload = { text, user: username, room, file: fileData };
-    if (replyTarget) payload.replyTo = replyTarget;
-    socket.emit('chat message', payload);
-    socket.emit('stop typing', { user: username, room });
-
-    input.value = '';
-    selectedFile = null; fileInput.value = '';
-    document.getElementById('file-preview').style.display = 'none';
-    replyTarget = null; document.getElementById('reply-preview').style.display = 'none';
-});
-</script>
+<script src="/js/utils.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/rooms.js"></script>
+<script src="/js/chat.js"></script>
 </body>
 </html>
