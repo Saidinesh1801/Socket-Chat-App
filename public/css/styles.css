@@ -1174,7 +1174,7 @@ body:has(#app-container[style*="grid"])::after{display:none}
     transition:transform .25s ease,box-shadow .25s ease;
 }
 .room-item:hover .ri-icon{transform:scale(1.08);box-shadow:0 6px 20px rgba(var(--primary-rgb),.35)}
-.room-item .ri-name{font-weight:600;font-size:.9rem;flex:1}
+.room-item .ri-name{font-weight:600;font-size:.9rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .room-item .ri-lock{font-size:.8rem;color:var(--text-secondary)}
 .room-create{display:flex;gap:8px;margin-top:8px}
 .room-create input{flex:1;min-width:0}
@@ -1739,8 +1739,12 @@ body:has(#app-container[style*="grid"])::after{display:none}
     #chat-container{max-width:100%;height:96vh;height:96dvh;border-radius:18px}
     .auth-card{max-width:380px;padding:36px 32px}
     .room-card{max-width:440px;padding:28px}
-    #app-container{grid-template-columns:0px 320px 4px 1fr}
+    #app-container{grid-template-columns:0px 280px 4px 1fr}
     #sidebar{display:none}
+}
+@media(max-width:768px){
+    #app-container{grid-template-columns:0px 240px 4px 1fr}
+    #resize-handle{display:none!important}
 }
 
 /* ══════════════════════════════════
