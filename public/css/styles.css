@@ -873,7 +873,8 @@ body::after{
 [data-wallpaper="custom"] #messages{
     background-image:var(--custom-wp-url)!important;
     background-size:cover!important;background-position:center!important;
-    background-attachment:fixed!important;
+    background-attachment:scroll!important;
+    background-repeat:no-repeat!important;
 }
 
 /* ── Resize Handle ── */
