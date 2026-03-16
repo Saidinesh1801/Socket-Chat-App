@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 
 if (!process.env.JWT_SECRET) {
   logger.error('JWT_SECRET environment variable is required');
+  logger.error('Available env keys: ' + Object.keys(process.env).filter(k => !k.startsWith('npm_')).join(', '));
   process.exit(1);
 }
 const JWT_SECRET = process.env.JWT_SECRET;
