@@ -183,11 +183,11 @@ const wpPalettes = {
     'gradient-candy':    { p:'#a18cd1', pr:'161,140,209', ph:'#9079c0', s:'#fbc2eb', sr:'251,194,235' },
     'gradient-fire':     { p:'#f12711', pr:'241,39,17',   ph:'#d92210', s:'#f5af19', sr:'245,175,25' },
     'gradient-aurora':   { p:'#43e97b', pr:'67,233,123',  ph:'#35d46c', s:'#667eea', sr:'102,126,234' },
-    'gradient-rose':     { p:'#ee9ca7', pr:'238,156,167', ph:'#e08a96', s:'#ffdde1', sr:'255,221,225' },
+    'gradient-rose':     { p:'#e91e63', pr:'233,30,99',   ph:'#d11557', s:'#f48fb1', sr:'244,143,177' },
     'gradient-arctic':   { p:'#74ebd5', pr:'116,235,213', ph:'#5dd4be', s:'#acb6e5', sr:'172,182,229' },
     'gradient-dusk':     { p:'#fd746c', pr:'253,116,108', ph:'#e5635b', s:'#2c3e50', sr:'44,62,80' },
     'gradient-neon':     { p:'#00f260', pr:'0,242,96',    ph:'#00d654', s:'#0575e6', sr:'5,117,230' },
-    'gradient-peach':    { p:'#fcb69f', pr:'252,182,159', ph:'#f0a58c', s:'#ffecd2', sr:'255,236,210' },
+    'gradient-peach':    { p:'#f57c5e', pr:'245,124,94',  ph:'#e06a4d', s:'#ff8a65', sr:'255,138,101' },
     // Anime
     'anime-naruto':      { p:'#ff6b00', pr:'255,107,0',   ph:'#e55f00', s:'#ff9a44', sr:'255,154,68' },
     'anime-dbz':         { p:'#ff8c00', pr:'255,140,0',   ph:'#e57e00', s:'#4169e1', sr:'65,105,225' },
@@ -209,11 +209,11 @@ const wpPalettes = {
     'movie-interstellar':{ p:'#0984e3', pr:'9,132,227',   ph:'#0874c9', s:'#3a3a6e', sr:'58,58,110' },
     'movie-spiderman':   { p:'#d32f2f', pr:'211,47,47',   ph:'#bd2929', s:'#1565c0', sr:'21,101,192' },
     'movie-frozen':      { p:'#4fc3f7', pr:'79,195,247',  ph:'#3ab5e8', s:'#0288d1', sr:'2,136,209' },
-    'movie-lotr':        { p:'#ffd54f', pr:'255,213,79',  ph:'#f0c83e', s:'#5d4037', sr:'93,64,55' },
+    'movie-lotr':        { p:'#ffd54f', pr:'255,213,79',  ph:'#f0c83e', s:'#558b2f', sr:'85,139,47' },
     'movie-joker':       { p:'#7e57c2', pr:'126,87,194',  ph:'#6d4aaf', s:'#f9a825', sr:'249,168,37' },
     'movie-inception':   { p:'#ff6f00', pr:'255,111,0',   ph:'#e56300', s:'#283593', sr:'40,53,147' },
     'movie-ironman':     { p:'#ff5722', pr:'255,87,34',   ph:'#e54d1e', s:'#ffc107', sr:'255,193,7' },
-    'movie-harrypotter': { p:'#c8a415', pr:'200,164,21',  ph:'#b39212', s:'#4a0e4e', sr:'74,14,78' },
+    'movie-harrypotter': { p:'#d4a017', pr:'212,160,23',  ph:'#be8f14', s:'#7b1fa2', sr:'123,31,162' },
     // Series
     'series-stranger':   { p:'#d32f2f', pr:'211,47,47',   ph:'#bd2929', s:'#1a0000', sr:'26,0,0' },
     'series-breaking':   { p:'#558b2f', pr:'85,139,47',   ph:'#4a7a28', s:'#f9a825', sr:'249,168,37' },
@@ -221,9 +221,9 @@ const wpPalettes = {
     'series-squid':      { p:'#e91e63', pr:'233,30,99',   ph:'#d11557', s:'#00bcd4', sr:'0,188,212' },
     'series-witcher':    { p:'#c0ca33', pr:'192,202,51',  ph:'#adb62d', s:'#424242', sr:'66,66,66' },
     'series-money':      { p:'#d32f2f', pr:'211,47,47',   ph:'#bd2929', s:'#b71c1c', sr:'183,28,28' },
-    'series-peaky':      { p:'#bf8b30', pr:'191,139,48',  ph:'#a87a2a', s:'#3e2723', sr:'62,39,35' },
+    'series-peaky':      { p:'#c49000', pr:'196,144,0',   ph:'#ab7e00', s:'#546e7a', sr:'84,110,122' },
     'series-wednesday':  { p:'#7e57c2', pr:'126,87,194',  ph:'#6d4aaf', s:'#37474f', sr:'55,71,79' },
-    'series-mandalorian':{ p:'#4fc3f7', pr:'79,195,247',  ph:'#3ab5e8', s:'#795548', sr:'121,85,72' },
+    'series-mandalorian':{ p:'#4fc3f7', pr:'79,195,247',  ph:'#3ab5e8', s:'#546e7a', sr:'84,110,122' },
     'series-arcane':     { p:'#e91e63', pr:'233,30,99',   ph:'#d11557', s:'#ff6f00', sr:'255,111,0' },
     'series-dark':       { p:'#f1c40f', pr:'241,196,15',  ph:'#d9b00e', s:'#1b2631', sr:'27,38,49' },
     'series-loki':       { p:'#4caf50', pr:'76,175,80',   ph:'#43a047', s:'#ffd54f', sr:'255,213,79' },
@@ -275,21 +275,61 @@ function darkenHex(hex, amt) {
     const d = v => Math.max(0, Math.round(v * (1 - amt)));
     return `#${d(r).toString(16).padStart(2,'0')}${d(g).toString(16).padStart(2,'0')}${d(b).toString(16).padStart(2,'0')}`;
 }
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        else if (max === g) h = ((b - r) / d + 2) / 6;
+        else h = ((r - g) / d + 4) / 6;
+    }
+    return [h * 360, s, l];
+}
+function saturateHex(hex, targetSat) {
+    const [r,g,b] = hexToRgb(hex);
+    let [h, s, l] = rgbToHsl(r, g, b);
+    s = Math.max(s, targetSat);
+    l = Math.max(0.35, Math.min(0.6, l));
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r1, g1, b1;
+    if (h < 60) { r1 = c; g1 = x; b1 = 0; }
+    else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+    else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+    else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+    else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+    else { r1 = c; g1 = 0; b1 = x; }
+    const toHex = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`;
+}
 function pickBestColors(colors) {
     if (!colors || colors.length === 0) return null;
-    // Filter out very dark and very light colors, pick most vibrant
     const scored = colors.map(c => {
         const [r,g,b] = hexToRgb(c);
-        const max = Math.max(r,g,b), min = Math.min(r,g,b);
-        const sat = max === 0 ? 0 : (max - min) / max;
-        const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-        // Prefer saturated, mid-brightness colors
-        const score = sat * 100 + (1 - Math.abs(lum - 0.5)) * 50;
-        return { c, score, lum };
+        const [h, s, l] = rgbToHsl(r, g, b);
+        // Penalize browns (hue 20-50), very dark, very light, and desaturated
+        const isBrown = (h >= 20 && h <= 50 && s < 0.6);
+        const isMuddy = s < 0.3;
+        const tooExtreme = l < 0.15 || l > 0.85;
+        let score = s * 120 + (1 - Math.abs(l - 0.5)) * 60;
+        if (isBrown) score -= 80;
+        if (isMuddy) score -= 60;
+        if (tooExtreme) score -= 100;
+        return { c, score, h, s, l };
     }).sort((a,b) => b.score - a.score);
-    const primary = scored[0]?.c || colors[0];
-    // Pick a secondary that's different enough from primary
-    const secondary = scored.find((s, i) => i > 0 && s.c !== primary)?.c || scored[1]?.c || colors[1] || primary;
+    let primary = scored[0]?.c || colors[0];
+    // Boost saturation if the picked color is dull
+    const [,ps] = rgbToHsl(...hexToRgb(primary));
+    if (ps < 0.5) primary = saturateHex(primary, 0.6);
+    // Pick a secondary with a different hue
+    const pH = scored[0]?.h || 0;
+    const secondary = scored.find((s, i) => i > 0 && Math.abs(s.h - pH) > 30)?.c
+        || scored[1]?.c || colors[1] || primary;
     return { primary, secondary };
 }
 
