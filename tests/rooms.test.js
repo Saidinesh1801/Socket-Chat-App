@@ -122,21 +122,21 @@ describe('Room CRUD via Socket.IO', () => {
 
   test('rejects deletion by non-creator', (done) => {
     const client1 = createClient(authToken);
-    const client2 = createClient(authToken2);
     const roomName = 'NoDelete_' + Date.now();
 
     client1.on('connect', () => {
       client1.emit('create room', { name: roomName });
     });
     client1.on('room created', () => {
-      client2.on('connect', () => {
-        client2.emit('delete room', { name: roomName });
-      });
+      const client2 = createClient(authToken2);
       client2.on('room error', (err) => {
         expect(err.message).toMatch(/creator/i);
         client1.disconnect();
         client2.disconnect();
         done();
+      });
+      client2.on('connect', () => {
+        client2.emit('delete room', { name: roomName });
       });
     });
   });

@@ -55,6 +55,7 @@ jobs:
           node --check routes/rooms.js
           node --check routes/upload.js
           node --check routes/linkPreview.js
+          node --check routes/wallpapers.js
           node --check utils/email.js
 
   security:
