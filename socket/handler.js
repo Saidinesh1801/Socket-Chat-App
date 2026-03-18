@@ -34,8 +34,22 @@ function setupSocketHandlers(io) {
       const roomPassword = typeof data === 'object' ? data.password : null;
       if (!roomName) return;
 
-      const roomDoc = await Room.findOne({ name: roomName });
-      if (roomDoc && roomDoc.password) {
+      const isDM = roomName.includes(':dm:');
+      let roomDoc = await Room.findOne({ name: roomName });
+
+      // Auto-create DM rooms
+      if (isDM && !roomDoc) {
+        const members = roomName.split(':dm:');
+        if (members.length === 2 && members.includes(username)) {
+          roomDoc = new Room({ name: roomName, isDM: true, members, creator: username });
+          await roomDoc.save();
+          io.emit('room created', { name: roomName, creator: username, hasPassword: false, isDM: true, members });
+        } else {
+          return socket.emit('room error', { message: 'Invalid DM room' });
+        }
+      }
+
+      if (roomDoc && roomDoc.password && !isDM) {
         const valid = await bcrypt.compare(roomPassword || '', roomDoc.password);
         if (!valid) return socket.emit('room error', { message: 'Incorrect room password' });
       }

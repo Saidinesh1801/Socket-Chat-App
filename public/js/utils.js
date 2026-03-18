@@ -3,11 +3,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-// ── Notification permission ──
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-}
-
 let socket, username, room, authToken;
 
 // ── Helpers ──
@@ -137,6 +132,12 @@ function showSettingsSection(sectionId) {
         const nm = document.getElementById('sd-account-name');
         if (av) { av.textContent = username.charAt(0).toUpperCase(); av.style.background = getColor(username); }
         if (nm) nm.textContent = username;
+    }
+
+    // Sync encryption settings
+    if (sectionId === 'encryption') {
+        document.getElementById('e2e-toggle').checked = isE2EEnabled();
+        document.getElementById('e2e-key-input').value = getE2EKey();
     }
 
     // Sync theme & wallpaper cards active state
@@ -665,4 +666,12 @@ document.addEventListener('keydown', (e) => {
         else next = activeIdx > 0 ? activeIdx - 1 : items.length - 1;
         items[next].click();
     }
+});
+
+// ── E2EE Settings ──
+document.getElementById('e2e-toggle').addEventListener('change', (e) => {
+    toggleE2E(e.target.checked);
+});
+document.getElementById('e2e-key-input').addEventListener('input', (e) => {
+    setE2EKey(e.target.value);
 });

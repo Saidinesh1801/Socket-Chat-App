@@ -4,6 +4,8 @@ const roomSchema = new mongoose.Schema({
   name: { type: String, unique: true, required: true },
   password: { type: String, default: null },
   creator: String,
+  isDM: { type: Boolean, default: false },
+  members: [String],
   createdAt: { type: Date, default: Date.now }
 });
 

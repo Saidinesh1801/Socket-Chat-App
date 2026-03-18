@@ -100,6 +100,9 @@ authBtn.addEventListener('click', async () => {
         document.getElementById('sidebar-username').textContent = username;
         document.getElementById('sidebar-avatar').textContent = username[0].toUpperCase();
         document.getElementById('sidebar-avatar').style.background = getColor(username);
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
         connectSocket();
         showRoomSelect();
     } catch(e) { authError.textContent = 'Network error'; }

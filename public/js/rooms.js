@@ -1,14 +1,23 @@
 // ── Room Selection ──
+function getDMDisplayName(roomName) {
+    const parts = roomName.split(':dm:');
+    return parts[0] === username ? parts[1] : parts[0];
+}
+
 async function showRoomSelect() {
     document.getElementById('room-username').textContent = username;
     try {
         const res = await authFetch('/api/v1/rooms');
         const rooms = await res.json();
         const list = document.getElementById('room-list');
-        const defaultRooms = [{name:'General',hasPassword:false,creator:'system'},{name:'Random',hasPassword:false,creator:'system'}];
+        const defaultRooms = [{name:'General',hasPassword:false,creator:'system',isDM:false},{name:'Random',hasPassword:false,creator:'system',isDM:false}];
         const allRooms = [...defaultRooms];
         rooms.forEach(r => { if(!allRooms.find(d => d.name === r.name)) allRooms.push(r); });
-        list.innerHTML = allRooms.map(r => `
+
+        const groupRooms = allRooms.filter(r => !r.isDM && !r.name.includes(':dm:'));
+        const dmRooms = allRooms.filter(r => r.isDM || r.name.includes(':dm:'));
+
+        let html = groupRooms.map(r => `
             <li class="room-item${room === r.name ? ' active' : ''}" data-room="${escapeHtml(r.name)}" data-locked="${r.hasPassword}">
                 <span class="ri-icon">#</span>
                 <span class="ri-name">${escapeHtml(r.name)}</span>
@@ -16,6 +25,20 @@ async function showRoomSelect() {
                 ${r.creator !== 'system' ? `<button class="room-delete-btn" data-del="${escapeHtml(r.name)}" title="Delete room"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
             </li>
         `).join('');
+
+        if (dmRooms.length > 0) {
+            html += '<li class="room-section-header">Direct Messages</li>';
+            html += dmRooms.map(r => {
+                const displayName = getDMDisplayName(r.name);
+                const color = getColor(displayName);
+                return `<li class="room-item dm-item${room === r.name ? ' active' : ''}" data-room="${escapeHtml(r.name)}" data-locked="false">
+                    <span class="ri-icon ri-dm" style="background:${color}">@</span>
+                    <span class="ri-name">${escapeHtml(displayName)}</span>
+                </li>`;
+            }).join('');
+        }
+
+        list.innerHTML = html;
         list.querySelectorAll('.room-item').forEach(el => el.addEventListener('click', (e) => {
             if (e.target.closest('.room-delete-btn')) return;
             const name = el.dataset.room;
@@ -87,7 +110,8 @@ function joinRoom(name, password) {
     room = name;
     document.getElementById('chat-empty').style.display = 'none';
     document.getElementById('chat-view').style.display = 'flex';
-    document.getElementById('current-room').textContent = room;
+    const isDM = room.includes(':dm:');
+    document.getElementById('current-room').textContent = isDM ? getDMDisplayName(room) : room;
     document.getElementById('current-user').textContent = username;
     // Highlight active room
     document.querySelectorAll('.room-item').forEach(el => {

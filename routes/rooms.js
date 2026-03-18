@@ -10,6 +10,8 @@ router.get('/', async (req, res) => {
       name: r.name,
       creator: r.creator,
       hasPassword: !!r.password,
+      isDM: r.isDM || false,
+      members: r.members || [],
       createdAt: r.createdAt
     }));
     res.json(roomData);

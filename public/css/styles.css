@@ -1176,6 +1176,16 @@ body:has(#app-container[style*="grid"])::after{display:none}
 .room-item:hover .ri-icon{transform:scale(1.08);box-shadow:0 6px 20px rgba(var(--primary-rgb),.35)}
 .room-item .ri-name{font-weight:600;font-size:.9rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .room-item .ri-lock{font-size:.8rem;color:var(--text-secondary)}
+.room-section-header{
+    font-size:.65rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--text-secondary);
+    padding:16px 16px 6px;list-style:none;
+}
+.ri-dm{
+    border-radius:50%!important;
+    font-size:.75rem!important;font-weight:800!important;
+    color:#fff!important;
+}
 .room-create{display:flex;gap:8px;margin-top:8px}
 .room-create input{flex:1;min-width:0}
 .room-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}

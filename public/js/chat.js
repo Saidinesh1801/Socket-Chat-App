@@ -44,9 +44,25 @@ function setupSocketEvents() {
     socket.on('chat message', (msg) => {
         displayMessage(msg);
         if (msg.user !== username) {
-            playSound(); incrementUnread();
+            if (document.hidden) playSound();
+            incrementUnread();
             if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                new Notification(msg.user, { body: msg.text || 'File attachment' });
+                const isDM = room && room.includes(':dm:');
+                const title = isDM ? msg.user : `${msg.user} in ${room}`;
+                const color = getColor(msg.user);
+                const canvas = document.createElement('canvas');
+                canvas.width = 64; canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = color;
+                ctx.beginPath(); ctx.arc(32, 32, 32, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 32px sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(msg.user[0].toUpperCase(), 32, 32);
+                const n = new Notification(title, {
+                    body: msg.text || 'File attachment',
+                    icon: canvas.toDataURL()
+                });
+                n.onclick = () => { window.focus(); n.close(); };
             }
             socket.emit('deliver message', { _id: msg._id, room });
         }
@@ -215,7 +231,11 @@ function displayMessage(msg, prepend = false, refNode = null) {
             content += `<div class="reply-quote"><div class="rq-user">${escapeHtml(msg.replyTo.user)}</div><div class="rq-text">${escapeHtml(msg.replyTo.text)}</div></div>`;
         }
         if (msg.text) {
-            content += `<div class="msg-text">${renderMarkdown(msg.text)}</div>`;
+            if (isEncrypted(msg.text)) {
+                content += `<div class="msg-text e2e-encrypted" data-ct="${escapeHtml(msg.text)}"><span style="opacity:.5">🔒 Decrypting...</span></div>`;
+            } else {
+                content += `<div class="msg-text">${renderMarkdown(msg.text)}</div>`;
+            }
         }
         if (msg.file) {
             if (msg.file.mimetype && msg.file.mimetype.startsWith('image/')) {
@@ -283,8 +303,17 @@ function displayMessage(msg, prepend = false, refNode = null) {
         oldestTimestamp = msg.timestamp;
     }
 
+    // Decrypt E2EE messages
+    if (msg.text && isEncrypted(msg.text) && !msg.deleted) {
+        const passphrase = getE2EKey() || room;
+        decryptMessage(msg.text, passphrase).then(plain => {
+            const el = bubble.querySelector('.e2e-encrypted');
+            if (el) el.innerHTML = plain ? '🔒 ' + renderMarkdown(plain) : '<span style="opacity:.5">🔒 Encrypted message</span>';
+        });
+    }
+
     // Fetch link previews
-    if (msg.text && !msg.deleted) {
+    if (msg.text && !msg.deleted && !isEncrypted(msg.text)) {
         const urls = msg.text.match(/https?:\/\/[^\s]+/g);
         if (urls) urls.slice(0,1).forEach(url => fetchLinkPreview(url, bubble));
     }
@@ -496,7 +525,12 @@ form.addEventListener('submit', async (e) => {
         } catch(err) { console.error(err); return; }
     }
 
-    const payload = { text, user: username, room, file: fileData };
+    let sendText = text;
+    if (text && isE2EEnabled()) {
+        const passphrase = getE2EKey() || room;
+        sendText = await encryptMessage(text, passphrase);
+    }
+    const payload = { text: sendText, user: username, room, file: fileData };
     if (replyTarget) payload.replyTo = replyTarget;
     socket.emit('chat message', payload);
     socket.emit('stop typing', { user: username, room });
