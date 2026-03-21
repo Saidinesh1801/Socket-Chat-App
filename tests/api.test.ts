@@ -7,7 +7,7 @@ let server: ReturnType<typeof app.listen>;
 let authToken: string;
 
 const testUser = {
-  username: 'testuser_' + Date.now(),
+  username: 'testuser' + Date.now(),
   email: `test${Date.now()}@example.com`,
   password: 'testpass123'
 };
