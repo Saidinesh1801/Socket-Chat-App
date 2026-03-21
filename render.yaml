@@ -2,20 +2,14 @@ services:
   - type: web
     name: socket-chat-app
     runtime: node
-    plan: free
     buildCommand: npm install && npm run build
     startCommand: node dist/server.js
     healthCheckPath: /api/v1/health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
-      - key: MONGODB_URI
-        sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
