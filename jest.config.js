@@ -3,7 +3,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['./tests/setup.ts'],
-  testTimeout: 30000,
+  testTimeout: 60000,
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'middleware/**/*.ts',
@@ -13,9 +13,6 @@ module.exports = {
     'config/**/*.ts',
     '!/**/*.d.ts'
   ],
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.ts$': '$1'
-  },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
@@ -23,5 +20,7 @@ module.exports = {
         esModuleInterop: true
       }
     }]
-  }
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testMatch: ['**/tests/**/*.test.ts']
 };

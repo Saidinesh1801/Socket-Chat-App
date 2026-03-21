@@ -25,10 +25,18 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  const mongoose = await import('mongoose');
-  await mongoose.connection.dropDatabase();
-  await mongoose.disconnect();
-  server.close();
+  try {
+    const mongoose = await import('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.dropDatabase();
+      await mongoose.disconnect();
+    }
+  } catch (e) {
+    // ignore cleanup errors
+  }
+  if (server) {
+    server.close();
+  }
 });
 
 describe('Auth API', () => {
@@ -51,8 +59,9 @@ describe('Auth API', () => {
 
   test('POST /api/v1/signup - rejects duplicate email', async () => {
     const res = await request(app).post('/api/v1/signup').send({
-      ...testUser,
-      username: 'otheruser'
+      username: 'diffuser' + Math.floor(Math.random() * 10000),
+      email: testUser.email,
+      password: 'testpass123'
     });
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/email/i);

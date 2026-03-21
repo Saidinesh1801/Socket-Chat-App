@@ -167,6 +167,10 @@ router.get('/profile', httpAuth, async (req: Request, res: Response): Promise<vo
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+router.get('/profile/presets', (req: Request, res: Response): void => {
+  res.json(presetAvatars);
+});
+
 router.get('/profile/:username', async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await User.findOne({ username: req.params.username }).select('username avatar status createdAt');

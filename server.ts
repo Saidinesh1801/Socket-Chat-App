@@ -120,7 +120,6 @@ app.use('/api/v1/link-preview', linkPreviewRoutes);
 app.use('/api/v1/wallpapers', wallpaperRoutes);
 app.use('/api/v1/gifs', gifRoutes);
 app.get('/api/v1/health', healthHandler);
-app.get('/api/v1/profile/presets', (req: Request, res: Response) => res.json(presetAvatars));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/api/v1/swagger.json', (req: Request, res: Response) => {
