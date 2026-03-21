@@ -71,7 +71,7 @@
     "preset": "ts-jest",
     "testEnvironment": "node",
     "setupFilesAfterEnv": [
-      "./tests/setup.js"
+      "./tests/setup.ts"
     ],
     "testTimeout": 30000,
     "coverageDirectory": "coverage",
