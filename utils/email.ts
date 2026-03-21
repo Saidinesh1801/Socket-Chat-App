@@ -1,11 +1,11 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-function sendOTPEmail(to, otp) {
+async function sendOTPEmail(to: string, otp: string) {
   return transporter.sendMail({
     from: `"Chat App" <${process.env.EMAIL_USER}>`,
     to,
@@ -21,4 +21,4 @@ function sendOTPEmail(to, otp) {
   });
 }
 
-module.exports = { sendOTPEmail };
+export { sendOTPEmail };

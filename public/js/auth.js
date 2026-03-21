@@ -1,10 +1,8 @@
 // ── Auth ──
 let isSignup = true;
 const authOverlay = document.getElementById('auth-overlay');
-const roomOverlay = document.getElementById('room-overlay');
 const authBtn = document.getElementById('auth-btn');
 const authError = document.getElementById('auth-error');
-
 const emailInput = document.getElementById('auth-email');
 const forgotWrap = document.getElementById('forgot-link-wrap');
 
@@ -21,13 +19,11 @@ function toggleAuthMode() {
 }
 document.getElementById('auth-toggle-link').addEventListener('click', toggleAuthMode);
 
-// Show all cards helper
 function showAuthCard(id) {
     ['auth-card','forgot-card','otp-card'].forEach(c => document.getElementById(c).style.display = 'none');
     document.getElementById(id).style.display = '';
 }
 
-// Forgot Password — Step 1
 let resetEmail = '';
 document.getElementById('forgot-link').addEventListener('click', () => showAuthCard('forgot-card'));
 document.getElementById('forgot-back').addEventListener('click', () => showAuthCard('auth-card'));
@@ -52,7 +48,6 @@ document.getElementById('forgot-send-btn').addEventListener('click', async () =>
     } catch(e) { btn.textContent = 'Send Code'; btn.disabled = false; err.textContent = 'Network error'; }
 });
 
-// Forgot Password — Step 2
 document.getElementById('otp-back').addEventListener('click', () => showAuthCard('forgot-card'));
 
 document.getElementById('otp-verify-btn').addEventListener('click', async () => {
@@ -92,14 +87,20 @@ authBtn.addEventListener('click', async () => {
         });
         const data = await res.json();
         if (!res.ok) { authError.textContent = data.error; return; }
-        authToken = data.token; username = data.username;
-        localStorage.setItem('chat_token', authToken);
-        localStorage.setItem('chat_user', username);
+        
+        // Use shared utilities
+        window.sharedUtils.setAuth(data.token, data.username);
+        localStorage.setItem('chat_token', data.token);
+        localStorage.setItem('chat_user', data.username);
+        
         authOverlay.style.display = 'none';
-        document.getElementById('app-container').style.display = 'grid';
-        document.getElementById('sidebar-username').textContent = username;
-        document.getElementById('sidebar-avatar').textContent = username[0].toUpperCase();
-        document.getElementById('sidebar-avatar').style.background = getColor(username);
+        window.sharedUtils.updateAppDisplay();
+        window.addEventListener('resize', window.sharedUtils.updateAppDisplay);
+        document.getElementById('sidebar-username').textContent = data.username;
+        
+        // Load saved avatar using shared utility
+        window.sharedUtils.loadProfileAndUpdateAvatar();
+        
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
@@ -107,10 +108,11 @@ authBtn.addEventListener('click', async () => {
         showRoomSelect();
     } catch(e) { authError.textContent = 'Network error'; }
 });
+
 document.querySelectorAll('#auth-username,#auth-password').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') authBtn.click(); }));
 
 function connectSocket() {
-    socket = io({ auth: { token: authToken } });
+    socket = io({ auth: { token: window.sharedUtils.authToken } });
     socket.on('connect_error', (err) => {
         if (err.message === 'Authentication required' || err.message === 'Invalid token') {
             localStorage.removeItem('chat_token'); localStorage.removeItem('chat_user');

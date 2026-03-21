@@ -1,10 +1,24 @@
-const express = require('express');
-const httpAuth = require('../middleware/httpAuth');
+import { Router, Request, Response } from 'express';
+import httpAuth from '../middleware/httpAuth';
 
-const router = express.Router();
+const router = Router();
 
-router.get('/', httpAuth, async (req, res) => {
-  const q = req.query.q || 'anime';
+interface WallhavenData {
+  data?: Array<{
+    id: string;
+    path: string;
+    thumbs?: { large?: string; original?: string; small?: string };
+    resolution: string;
+    colors: string[];
+  }>;
+  meta?: {
+    last_page?: number;
+    current_page?: number;
+  };
+}
+
+router.get('/', httpAuth, async (req: Request, res: Response): Promise<void> => {
+  const q = (req.query.q as string) || 'anime';
   const page = req.query.page || 1;
   const url = `https://wallhaven.cc/api/v1/search?q=${encodeURIComponent(q)}&page=${page}&categories=111&purity=100&sorting=relevance&order=desc`;
   try {
@@ -15,8 +29,8 @@ router.get('/', httpAuth, async (req, res) => {
       headers: { 'User-Agent': 'Mozilla/5.0 ChatApp Wallpaper' }
     });
     clearTimeout(timeout);
-    const data = await resp.json();
-    const results = (data.data || []).map(item => ({
+    const data = await resp.json() as WallhavenData;
+    const results = (data.data || []).map((item) => ({
       id: item.id,
       url: item.path,
       thumb: item.thumbs?.large || item.thumbs?.original || item.thumbs?.small,
@@ -29,4 +43,4 @@ router.get('/', httpAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

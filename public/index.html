@@ -6,6 +6,8 @@
     <title>Chat</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a0a1a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -14,24 +16,96 @@
 
 <div id="reconnect-banner" aria-live="assertive"></div>
 <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
+
+<!-- User Profile Modal -->
+<div id="user-profile-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:var(--surface);border-radius:20px;padding:32px;text-align:center;min-width:280px;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+        <img id="upm-avatar" src="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.2);border:3px solid var(--primary);margin-bottom:12px" alt="">
+        <div id="upm-name" style="font-size:1.3rem;font-weight:700;margin-bottom:4px"></div>
+        <div id="upm-status" style="font-size:.85rem;color:var(--text-secondary);margin-bottom:16px;min-height:20px"></div>
+        <div id="upm-joined" style="font-size:.78rem;color:var(--text-secondary);margin-bottom:20px"></div>
+        <div style="display:flex;gap:12px;justify-content:center">
+            <button id="upm-message-btn" style="background:var(--primary);color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:600">Message</button>
+            <button id="upm-close-btn" style="background:var(--bg-primary);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:10px;cursor:pointer">Close</button>
+        </div>
+    </div>
+</div>
 <div class="toast" id="rate-toast" role="alert" aria-live="assertive">Slow down! 1 message per second.</div>
 <div class="toast" id="room-toast" role="alert" aria-live="assertive"></div>
 
 <!-- Context Menu -->
 <div id="context-menu" role="menu" aria-label="Message actions">
     <div class="ctx-item" data-action="reply" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>Reply</div>
+    <div class="ctx-item" data-action="forward" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Forward</div>
+    <div class="ctx-item" data-action="pin" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Pin</div>
     <div class="ctx-item" data-action="edit" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</div>
     <div class="ctx-item danger" data-action="delete" role="menuitem" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</div>
+</div>
+
+<!-- Mention Autocomplete -->
+<div id="mention-dropdown" style="display:none;position:absolute;z-index:1000;min-width:180px;max-width:280px;max-height:200px;overflow-y:auto;background:var(--surface);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid var(--border)"></div>
+
+<!-- Forward Modal -->
+<div id="forward-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;background:var(--surface);border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,0.3);z-index:10000;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:1rem;font-weight:600">Forward to...</h3>
+        <button id="forward-close" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-secondary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div style="padding:12px">
+        <input type="text" id="forward-search" placeholder="Search rooms..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-primary);box-sizing:border-box">
+    </div>
+    <div id="forward-rooms" style="max-height:250px;overflow-y:auto;padding:0 12px 12px"></div>
 </div>
 
 <!-- Reaction Picker -->
 <div id="reaction-picker" role="toolbar" aria-label="Add reaction">
     <button class="react-emoji" data-emoji="👍" aria-label="Thumbs up">👍</button>
     <button class="react-emoji" data-emoji="❤️" aria-label="Heart">❤️</button>
-    <button class="react-emoji" data-emoji="😂" aria-label="Laughing">😂</button>
-    <button class="react-emoji" data-emoji="😮" aria-label="Surprised">😮</button>
+    <button class="react-emoji" data-emoji="😂" aria-label="Laugh">😂</button>
+    <button class="react-emoji" data-emoji="😮" aria-label="Wow">😮</button>
     <button class="react-emoji" data-emoji="😢" aria-label="Sad">😢</button>
-    <button class="react-emoji" data-emoji="🔥" aria-label="Fire">🔥</button>
+    <button class="react-emoji" data-emoji="😡" aria-label="Angry">😡</button>
+</div>
+
+<!-- GIF Picker -->
+<div id="gif-picker" style="display:none;position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:320px;max-height:400px;background:var(--surface);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1000;overflow:hidden">
+    <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;gap:8px">
+        <input type="text" id="gif-search" placeholder="Search GIFs..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-primary)">
+    </div>
+    <div id="gif-results" style="max-height:320px;overflow-y:auto;padding:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px"></div>
+    <div id="gif-loading" style="display:none;text-align:center;padding:20px;color:var(--text-secondary)">Loading...</div>
+</div>
+
+<!-- Notification Center -->
+<div id="notification-center" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;max-height:500px;background:var(--surface);border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,0.3);z-index:10000;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:1rem;font-weight:600">Notifications</h3>
+        <button id="notif-close" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-secondary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div id="notif-list" style="max-height:400px;overflow-y:auto"></div>
+    <div id="notif-empty" style="padding:40px;text-align:center;color:var(--text-secondary)">No notifications yet</div>
+</div>
+
+<!-- Keyboard Shortcuts Help -->
+<div id="shortcuts-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:420px;background:var(--surface);border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,0.3);z-index:10000;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:1rem;font-weight:600">Keyboard Shortcuts</h3>
+        <button id="shortcuts-close" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-secondary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div style="padding:16px 20px">
+        <div class="shortcut-item"><kbd>/</kbd> <span>Search</span></div>
+        <div class="shortcut-item"><kbd>Esc</kbd> <span>Close modals</span></div>
+        <div class="shortcut-item"><kbd>↑</kbd> <span>Edit last message</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+Enter</kbd> <span>Send message</span></div>
+        <div class="shortcut-item"><kbd>@</kbd> <span>Mention user</span></div>
+        <div class="shortcut-item"><kbd>?</kbd> <span>This help</span></div>
+    </div>
 </div>
 
 <!-- Auth Overlay -->
@@ -101,12 +175,23 @@
         </div>
         <div class="sidebar-bottom">
             <div class="sidebar-user">
-                <div class="sidebar-avatar" id="sidebar-avatar"></div>
+                <img id="sidebar-avatar" class="sidebar-avatar" style="cursor:pointer" src="" alt="avatar">
                 <span class="sidebar-username" id="sidebar-username"></span>
             </div>
             <button class="sidebar-btn logout" id="sidebar-logout" title="Logout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></button>
         </div>
     </aside>
+
+    <!-- Avatar Preview Modal (moved outside sidebar) -->
+    <div id="avatar-preview-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:99999;align-items:center;justify-content:center;flex-direction:column">
+        <div style="text-align:center;padding:20px">
+            <img id="avatar-preview-big" style="width:300px;height:300px;border-radius:50%;border:4px solid var(--primary);object-fit:cover;box-shadow:0 0 40px rgba(0,0,0,0.5)">
+            <div style="margin-top:25px;display:flex;gap:12px;justify-content:center">
+                <button id="avatar-preview-edit" class="sd-btn sd-btn-apply">Edit Avatar</button>
+                <button id="avatar-preview-close" class="sd-btn" style="margin-left:0">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MIDDLE: Room List -->
     <div id="room-panel">
@@ -251,11 +336,160 @@
                 <div class="sd-group">
                     <div class="sd-group-title">Profile</div>
                     <div class="sd-profile-card">
-                        <div class="sd-profile-avatar" id="sd-account-avatar"></div>
+                        <div class="sd-profile-avatar" id="sd-account-avatar" style="cursor:pointer;position:relative;overflow:visible">
+                            <img id="sd-avatar-img" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;position:absolute;inset:0">
+                        </div>
                         <div class="sd-profile-details">
                             <div class="sd-profile-name" id="sd-account-name"></div>
-                            <div class="sd-profile-joined">Member since 2025</div>
+                            <div class="sd-profile-joined" id="sd-account-joined">Member since 2025</div>
                         </div>
+                    </div>
+                    <input type="file" id="avatar-file-input" accept="image/*" style="display:none">
+                    <button class="sd-btn" id="avatar-upload-btn" style="margin-top:8px;font-size:.8rem">Upload Image</button>
+                    <button class="sd-btn" id="avatar-remove-btn" style="margin-top:8px;margin-left:4px;font-size:.8rem;background:var(--error)">Remove</button>
+                    
+                    <!-- Avatar Crop/Preview Section -->
+                    <div id="avatar-crop-section" style="display:none;margin-top:15px;padding:15px;background:var(--bg-primary);border-radius:8px">
+                        <p style="margin:0 0 10px;color:var(--text-primary);font-size:13px">Crop your image:</p>
+                        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px">
+                            <canvas id="avatar-crop-canvas" style="max-width:200px;max-height:200px;border-radius:50%;border:2px solid var(--primary)"></canvas>
+                        </div>
+                        <p style="margin:0 0 10px;color:var(--text-secondary);font-size:11px">Drag to reposition. Image will be cropped to circle.</p>
+                        <div style="display:flex;gap:8px">
+                            <button id="avatar-crop-cancel" class="sd-btn" style="flex:1;background:var(--bg-secondary)">Cancel</button>
+                            <button id="avatar-crop-apply" class="sd-btn sd-btn-apply" style="flex:1">Apply</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Avatar Presets Section -->
+                <div class="sd-group" style="margin-top:20px">
+                    <div class="sd-group-title">Custom Avatar</div>
+                    <p style="color:var(--text-secondary);font-size:12px;margin-bottom:10px">Paste any image URL or upload a photo</p>
+                    <!-- URL Input -->
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <input type="url" id="avatar-url-input" class="auth-input" placeholder="Paste image URL here..." style="flex:1;font-size:.82rem;margin:0">
+                        <button id="avatar-url-btn" class="sd-btn sd-btn-apply" style="white-space:nowrap">Use URL</button>
+                    </div>
+                    <div id="avatar-url-preview" style="display:none;text-align:center;margin-bottom:12px;padding:12px;background:var(--bg-primary);border-radius:8px">
+                        <img id="avatar-url-img" src="" style="width:80px;height:80px;border-radius:50%;border:2px solid var(--primary)">
+                        <button id="avatar-url-apply" class="sd-btn sd-btn-apply" style="margin-left:12px">Set as Avatar</button>
+                    </div>
+                    <div style="text-align:center;color:var(--text-secondary);margin-bottom:12px;font-size:11px">— or choose from presets below —</div>
+                    <!-- Preview area -->
+                    <div id="avatar-preview" style="text-align:center;margin-bottom:15px;padding:15px;background:var(--bg-primary);border-radius:8px">
+                        <img id="avatar-preview-img" src="" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--primary);display:none">
+                        <p id="avatar-preview-text" style="color:var(--text-secondary);margin:10px 0 0">Click an avatar to preview</p>
+                    </div>
+                    <style>
+                        .avatar-section{margin-bottom:16px}
+                        .avatar-section-title{font-size:.75rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+                        .avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:8px}
+                        .avatar-card{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:10px 6px;border-radius:12px;transition:all .2s;border:2px solid transparent}
+                        .avatar-card:hover{background:rgba(var(--primary-rgb),.08);transform:scale(1.05)}
+                        .avatar-card.selected{border-color:var(--primary);background:rgba(var(--primary-rgb),.1)}
+                        .avatar-card img{width:56px;height:56px;border-radius:50%;border:2px solid var(--border)}
+                        .avatar-card span{font-size:.65rem;color:var(--text-secondary);text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                    </style>
+                    <div id="avatar-presets-grid" style="max-height:400px;overflow-y:auto;padding-right:8px">
+                        <!-- Cool Styles -->
+                        <div class="avatar-section">
+                            <div class="avatar-section-title">Cool Styles</div>
+                            <div class="avatar-grid">
+                                <div class="avatar-card" data-av="cl1" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool1&backgroundColor=000000"></div>
+                                <div class="avatar-card" data-av="cl2" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool2&backgroundColor=1a1a1a"></div>
+                                <div class="avatar-card" data-av="cl3" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool3&backgroundColor=800080"></div>
+                                <div class="avatar-card" data-av="cl4" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool4&backgroundColor=8b0000"></div>
+                                <div class="avatar-card" data-av="cl5" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool5&backgroundColor=4a4a4a"></div>
+                                <div class="avatar-card" data-av="cl6" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool6&backgroundColor=8b0000"></div>
+                                <div class="avatar-card" data-av="cl7" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool7&backgroundColor=000000"></div>
+                                <div class="avatar-card" data-av="cl8" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool8&backgroundColor=808080"></div>
+                                <div class="avatar-card" data-av="cl9" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool9&backgroundColor=4169e1"></div>
+                                <div class="avatar-card" data-av="cl10" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool10&backgroundColor=228b22"></div>
+                                <div class="avatar-card" data-av="cl11" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool11&backgroundColor=ff4500"></div>
+                                <div class="avatar-card" data-av="cl12" data-cat="cool"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=cool12&backgroundColor=ff69b4"></div>
+                            </div>
+                        </div>
+                        <!-- Vibrant Colors -->
+                        <div class="avatar-section">
+                            <div class="avatar-section-title">Vibrant Colors</div>
+                            <div class="avatar-grid">
+                                <div class="avatar-card" data-av="vc1" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant1&backgroundColor=ff0000"></div>
+                                <div class="avatar-card" data-av="vc2" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant2&backgroundColor=ff6b00"></div>
+                                <div class="avatar-card" data-av="vc3" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant3&backgroundColor=ffd700"></div>
+                                <div class="avatar-card" data-av="vc4" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant4&backgroundColor=00ff00"></div>
+                                <div class="avatar-card" data-av="vc5" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant5&backgroundColor=00ffff"></div>
+                                <div class="avatar-card" data-av="vc6" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant6&backgroundColor=0000ff"></div>
+                                <div class="avatar-card" data-av="vc7" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant7&backgroundColor=8b00ff"></div>
+                                <div class="avatar-card" data-av="vc8" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant8&backgroundColor=ff00ff"></div>
+                                <div class="avatar-card" data-av="vc9" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant9&backgroundColor=ff1493"></div>
+                                <div class="avatar-card" data-av="vc10" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant10&backgroundColor=00bfff"></div>
+                                <div class="avatar-card" data-av="vc11" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant11&backgroundColor=9acd32"></div>
+                                <div class="avatar-card" data-av="vc12" data-cat="vibrant"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=vibrant12&backgroundColor=daa520"></div>
+                            </div>
+                        </div>
+                        <!-- Pastel -->
+                        <div class="avatar-section">
+                            <div class="avatar-section-title">Pastel</div>
+                            <div class="avatar-grid">
+                                <div class="avatar-card" data-av="ps1" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel1&backgroundColor=ffb6c1"></div>
+                                <div class="avatar-card" data-av="ps2" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel2&backgroundColor=ffe4e1"></div>
+                                <div class="avatar-card" data-av="ps3" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel3&backgroundColor=fff0f5"></div>
+                                <div class="avatar-card" data-av="ps4" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel4&backgroundColor=e6e6fa"></div>
+                                <div class="avatar-card" data-av="ps5" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel5&backgroundColor=b0e0e6"></div>
+                                <div class="avatar-card" data-av="ps6" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel6&backgroundColor=afeeee"></div>
+                                <div class="avatar-card" data-av="ps7" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel7&backgroundColor=98fb98"></div>
+                                <div class="avatar-card" data-av="ps8" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel8&backgroundColor=f0fff0"></div>
+                                <div class="avatar-card" data-av="ps9" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel9&backgroundColor=fffacd"></div>
+                                <div class="avatar-card" data-av="ps10" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel10&backgroundColor=f5f5dc"></div>
+                                <div class="avatar-card" data-av="ps11" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel11&backgroundColor=ffe4b5"></div>
+                                <div class="avatar-card" data-av="ps12" data-cat="pastel"><img src="https://api.dicebear.com/9.x/lorelei/svg?seed=pastel12&backgroundColor=ffdab9"></div>
+                            </div>
+                        </div>
+                        <!-- Robots -->
+                        <div class="avatar-section">
+                            <div class="avatar-section-title">Robots</div>
+                            <div class="avatar-grid">
+                                <div class="avatar-card" data-av="rb1" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot1"></div>
+                                <div class="avatar-card" data-av="rb2" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot2"></div>
+                                <div class="avatar-card" data-av="rb3" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot3"></div>
+                                <div class="avatar-card" data-av="rb4" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot4"></div>
+                                <div class="avatar-card" data-av="rb5" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot5"></div>
+                                <div class="avatar-card" data-av="rb6" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot6"></div>
+                                <div class="avatar-card" data-av="rb7" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot7"></div>
+                                <div class="avatar-card" data-av="rb8" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot8"></div>
+                                <div class="avatar-card" data-av="rb9" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot9"></div>
+                                <div class="avatar-card" data-av="rb10" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot10"></div>
+                                <div class="avatar-card" data-av="rb11" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot11"></div>
+                                <div class="avatar-card" data-av="rb12" data-cat="robots"><img src="https://api.dicebear.com/9.x/bottts/svg?seed=robot12"></div>
+                            </div>
+                        </div>
+                        <!-- Fun -->
+                        <div class="avatar-section">
+                            <div class="avatar-section-title">Fun</div>
+                            <div class="avatar-grid">
+                                <div class="avatar-card" data-av="fn1" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun1"></div>
+                                <div class="avatar-card" data-av="fn2" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun2"></div>
+                                <div class="avatar-card" data-av="fn3" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun3"></div>
+                                <div class="avatar-card" data-av="fn4" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun4"></div>
+                                <div class="avatar-card" data-av="fn5" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun5"></div>
+                                <div class="avatar-card" data-av="fn6" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun6"></div>
+                                <div class="avatar-card" data-av="fn7" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun7"></div>
+                                <div class="avatar-card" data-av="fn8" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun8"></div>
+                                <div class="avatar-card" data-av="fn9" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun9"></div>
+                                <div class="avatar-card" data-av="fn10" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun10"></div>
+                                <div class="avatar-card" data-av="fn11" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun11"></div>
+                                <div class="avatar-card" data-av="fn12" data-cat="fun"><img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=fun12"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="avatar-apply-btn" class="sd-btn sd-btn-apply" style="width:100%;margin-top:10px;display:none">Apply Avatar</button>
+                </div>
+                
+                <div style="margin-top:10px">
+                    <div style="margin-top:10px">
+                        <label class="sd-label" style="font-size:.82rem;color:var(--text-secondary)">Status</label>
+                        <input type="text" id="sd-status-input" class="auth-input" placeholder="What's on your mind?" maxlength="100" style="margin-top:4px;font-size:.85rem">
                     </div>
                 </div>
                 <div class="sd-group">
@@ -600,6 +834,8 @@
                 </div>
                 <button class="hdr-btn" id="search-toggle" title="Search" aria-label="Search messages"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
                 <button class="hdr-btn" id="users-toggle" title="Online users" aria-label="Online users"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+                <button class="hdr-btn" id="sound-toggle" title="Toggle sound" aria-label="Toggle notification sound"><svg id="sound-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><svg id="sound-icon-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
+                <button class="hdr-btn" id="notif-btn" title="Notifications" aria-label="Notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--error);color:white;font-size:10px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center" aria-label="Unread notifications">0</span></button>
             </div>
             <div id="search-bar">
                 <input id="search-input" placeholder="Search messages…" aria-label="Search messages" />
@@ -619,6 +855,10 @@
                 <div id="drop-zone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Drop file to upload</div>
                 <button id="scroll-bottom" aria-label="Scroll to bottom">↓</button>
             </ul>
+            <div id="pinned-messages-bar" style="display:none;background:var(--bg-primary);border-bottom:1px solid var(--border);padding:8px 16px;overflow-x:auto;white-space:nowrap">
+                <span style="font-size:.75rem;color:var(--text-secondary);margin-right:8px">📌 Pinned:</span>
+                <span id="pinned-messages-list"></span>
+            </div>
             <div id="typing-indicator" aria-live="polite"></div>
             <div id="reply-preview">
                 <span>↩</span>
@@ -656,11 +896,11 @@
 <!-- Hidden compat elements -->
 <div id="room-overlay" style="display:none!important"></div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/js/utils.js"></script>
-<script src="/js/auth.js"></script>
-<script src="/js/rooms.js"></script>
-<script src="/js/crypto.js"></script>
-<script src="/js/chat.js"></script>
+<script src="/socket.io/socket.io.js" defer></script>
+<script src="/js/utils.js" defer></script>
+<script src="/js/auth.js" defer></script>
+<script src="/js/rooms.js" defer></script>
+<script src="/js/crypto.js" defer></script>
+<script src="/js/chat.js" defer></script>
 </body>
 </html>

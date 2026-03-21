@@ -1,4 +1,4 @@
-function sanitizeText(text) {
+export function sanitizeText(text: unknown): string {
   if (typeof text !== 'string') return '';
   return text
     .replace(/<[^>]*>/g, '')
@@ -7,7 +7,7 @@ function sanitizeText(text) {
     .slice(0, 2000);
 }
 
-function sanitizeRoomName(name) {
+export function sanitizeRoomName(name: unknown): string {
   if (typeof name !== 'string') return '';
   return name
     .replace(/[<>"'&\\]/g, '')
@@ -15,5 +15,3 @@ function sanitizeRoomName(name) {
     .trim()
     .slice(0, 32);
 }
-
-module.exports = { sanitizeText, sanitizeRoomName };

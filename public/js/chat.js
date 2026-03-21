@@ -12,6 +12,16 @@ let typingTimer, selectedFile = null, replyTarget = null;
 let lastDateStr = null, oldestTimestamp = null, hasMore = true, loadingMore = false, historyLoaded = false;
 let contextMsgId = null, contextMsgUser = null, contextMsgText = null;
 
+// ── New feature state ──
+let soundEnabled = localStorage.getItem('chat_sound') !== 'false';
+let notifications = [];
+let pinnedMessages = [];
+let onlineUsers = [];
+let mentionDropdownVisible = false;
+let mentionSearch = '';
+let mentionStartPos = 0;
+let forwardMsgId = null;
+
 // ── Link preview cache ──
 const linkPreviews = new Map();
 async function fetchLinkPreview(url, container) {
@@ -33,6 +43,26 @@ function renderPreview(data, container) {
 }
 
 function setupSocketEvents() {
+    socket.on('user joined', (d) => {
+        if (d.username !== username && room === d.room) {
+            const wrapper = document.createElement('li');
+            wrapper.className = 'system-msg';
+            wrapper.innerHTML = `<span>${escapeHtml(d.username)} joined the room</span>`;
+            messages.appendChild(wrapper);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    });
+
+    socket.on('user left', (d) => {
+        if (d.username !== username && room === d.room) {
+            const wrapper = document.createElement('li');
+            wrapper.className = 'system-msg';
+            wrapper.innerHTML = `<span>${escapeHtml(d.username)} left the room</span>`;
+            messages.appendChild(wrapper);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    });
+
     socket.on('load messages', (docs) => {
         document.querySelectorAll('.skeleton-msg').forEach(s => s.remove());
         historyLoaded = true; lastDateStr = null;
@@ -134,6 +164,52 @@ function setupSocketEvents() {
         }
     });
 
+    socket.on('notification', (d) => {
+        if (d.mentionedUser === username || d.type === 'pin') {
+            notifications.unshift(d);
+            if (notifications.length > 50) notifications.pop();
+            updateNotificationBadge();
+            if (document.getElementById('notification-center').style.display !== 'none') {
+                renderNotificationCenter();
+            }
+        }
+    });
+
+    socket.on('pinned messages', (docs) => {
+        pinnedMessages = docs;
+        renderPinnedBar();
+    });
+
+    socket.on('message pinned', (d) => {
+        const el = document.querySelector(`[data-msg-id="${d._id}"]`);
+        if (el) {
+            el.classList.toggle('pinned-msg', d.pinned);
+            const pinIcon = el.querySelector('.pin-icon') || (() => {
+                const icon = document.createElement('span');
+                icon.className = 'pin-icon';
+                icon.textContent = '📌';
+                icon.style.marginRight = '4px';
+                return icon;
+            })();
+            if (d.pinned) {
+                el.querySelector('.message-info')?.prepend(pinIcon);
+            } else {
+                pinIcon.remove();
+            }
+        }
+        if (d.pinned) {
+            pinnedMessages.unshift({ _id: d._id, pinned: true });
+            if (pinnedMessages.length > 5) pinnedMessages.pop();
+        } else {
+            pinnedMessages = pinnedMessages.filter(m => m._id !== d._id);
+        }
+        renderPinnedBar();
+    });
+
+    socket.on('message forwarded', (d) => {
+        showToast('room-toast', `Message forwarded to #${d.targetRoom}`);
+    });
+
     socket.on('typing', (d) => {
         if (d.user !== username) {
             typingIndicator.innerHTML = `<span>${escapeHtml(d.user)}</span><span class="typing-dots"><span></span><span></span><span></span></span>`;
@@ -144,6 +220,7 @@ function setupSocketEvents() {
     socket.on('rate limited', () => { showToast('rate-toast'); });
 
     socket.on('users list', (users) => {
+        onlineUsers = users;
         document.getElementById('users-count').textContent = users.length;
         const uch = document.getElementById('users-count-header');
         if (uch) uch.textContent = users.length;
@@ -175,8 +252,29 @@ function setupSocketEvents() {
 
     socket.on('search results', (docs) => {
         document.getElementById('search-count').textContent = `${docs.length} result${docs.length!==1?'s':''}`;
-        // Highlight matches in chat
-        document.querySelectorAll('.message.search-hit').forEach(el => el.classList.remove('search-hit'));
+        document.querySelectorAll('.message.search-hit').forEach(el => { el.classList.remove('search-hit'); el.style.outline = ''; });
+        // Show global results panel or highlight in-room matches
+        const globalPanel = document.getElementById('global-search-results');
+        const hasGlobalResults = docs.some(d => d.room !== room);
+        if (hasGlobalResults && globalPanel) {
+            globalPanel.innerHTML = docs.map(d => {
+                const roomLabel = d.room.includes(':dm:') ? '@' + d.room.split(':dm:').find(u => u !== username) : '#' + d.room;
+                return `<div class="global-result" data-room="${escapeHtml(d.room)}" data-mid="${d._id}">
+                    <div class="gr-room">${escapeHtml(roomLabel)}</div>
+                    <div class="gr-user">${escapeHtml(d.user)}</div>
+                    <div class="gr-text">${escapeHtml((d.text || '').slice(0, 80))}</div>
+                </div>`;
+            }).join('');
+            globalPanel.style.display = 'block';
+            globalPanel.querySelectorAll('.global-result').forEach(el => {
+                el.addEventListener('click', () => {
+                    joinRoom(el.dataset.room, null);
+                    globalPanel.style.display = 'none';
+                });
+            });
+        } else if (globalPanel) {
+            globalPanel.style.display = 'none';
+        }
         docs.forEach(d => {
             const el = document.querySelector(`[data-msg-id="${d._id}"]`);
             if (el) { el.classList.add('search-hit'); el.style.outline = `2px solid var(--primary)`; }
@@ -194,6 +292,65 @@ function setupSocketEvents() {
         }
     });
 }
+
+// ── User Profile Modal ──
+const userProfileModal = document.getElementById('user-profile-modal');
+const upmAvatar = document.getElementById('upm-avatar');
+const upmName = document.getElementById('upm-name');
+const upmStatus = document.getElementById('upm-status');
+const upmJoined = document.getElementById('upm-joined');
+const upmMessageBtn = document.getElementById('upm-message-btn');
+const upmCloseBtn = document.getElementById('upm-close-btn');
+
+document.addEventListener('click', async (e) => {
+    const userNameEl = e.target.closest('.msg-user-name');
+    if (userNameEl && !e.target.closest('.message.deleted-msg')) {
+        e.preventDefault();
+        const targetUser = userNameEl.dataset.user;
+        
+        upmName.textContent = targetUser;
+        upmStatus.textContent = 'Loading...';
+        upmJoined.textContent = '';
+        upmAvatar.src = '';
+        upmAvatar.style.background = getColor(targetUser);
+        upmAvatar.textContent = targetUser[0].toUpperCase();
+        userProfileModal.style.display = 'flex';
+        
+        try {
+            const res = await authFetch(`/api/v1/profile/${encodeURIComponent(targetUser)}`);
+            const data = await res.json();
+            
+            if (data.avatar) {
+                upmAvatar.src = data.avatar;
+                upmAvatar.textContent = '';
+            }
+            upmStatus.textContent = data.status || 'No status set';
+            if (data.createdAt) {
+                const date = new Date(data.createdAt);
+                upmJoined.textContent = `Member since ${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+            }
+        } catch(e) {
+            upmStatus.textContent = 'Could not load profile';
+        }
+    }
+});
+
+upmCloseBtn.addEventListener('click', () => {
+    userProfileModal.style.display = 'none';
+});
+
+userProfileModal.addEventListener('click', (e) => {
+    if (e.target === userProfileModal) userProfileModal.style.display = 'none';
+});
+
+upmMessageBtn.addEventListener('click', () => {
+    const targetUser = upmName.textContent;
+    userProfileModal.style.display = 'none';
+    if (targetUser && targetUser !== username) {
+        const dmRoom = [username, targetUser].sort().join(':dm:');
+        joinRoom(dmRoom, null);
+    }
+});
 
 // ── Display Message ──
 let prevMsgUser = null;
@@ -216,7 +373,11 @@ function displayMessage(msg, prepend = false, refNode = null) {
     let avatarHtml = '';
     if (!isOwn) {
         const c = getColor(msg.user);
-        avatarHtml = `<div class="avatar-msg" style="background:${c}">${escapeHtml(msg.user[0].toUpperCase())}</div>`;
+        if (msg.avatar) {
+            avatarHtml = `<img class="avatar-msg" src="${escapeHtml(msg.avatar)}" alt="${escapeHtml(msg.user)}">`;
+        } else {
+            avatarHtml = `<div class="avatar-msg" style="background:${c}">${escapeHtml(msg.user[0].toUpperCase())}</div>`;
+        }
     }
 
     const statusHtml = isOwn ? `<span class="msg-status" data-status-id="${msg._id}">${msg.status==='delivered'?'✓✓':'✓'}</span>` : '';
@@ -226,7 +387,7 @@ function displayMessage(msg, prepend = false, refNode = null) {
     if (msg.deleted) {
         content = '<div class="message-info" style="opacity:.5">Message deleted</div>';
     } else {
-        content = `<div class="message-info"><strong>${escapeHtml(msg.user)}</strong> · ${escapeHtml(msg.time)} ${statusHtml} ${editedHtml}</div>`;
+        content = `<div class="message-info"><strong class="msg-user-name" data-user="${escapeHtml(msg.user)}" style="cursor:pointer">${escapeHtml(msg.user)}</strong> · ${escapeHtml(msg.time)} ${statusHtml} ${editedHtml}</div>`;
         if (msg.replyTo && msg.replyTo.user) {
             content += `<div class="reply-quote"><div class="rq-user">${escapeHtml(msg.replyTo.user)}</div><div class="rq-text">${escapeHtml(msg.replyTo.text)}</div></div>`;
         }
@@ -319,8 +480,144 @@ function displayMessage(msg, prepend = false, refNode = null) {
     }
 }
 
+// ── Notification helpers ──
+function updateNotificationBadge() {
+    const badge = document.getElementById('notif-badge');
+    unreadCount = notifications.filter(n => !n.read).length;
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function renderNotificationCenter() {
+    const list = document.getElementById('notif-list');
+    const empty = document.getElementById('notif-empty');
+    if (!list) return;
+    
+    if (notifications.length === 0) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    
+    if (empty) empty.style.display = 'none';
+    list.innerHTML = notifications.map(n => {
+        const icon = n.type === 'mention' ? '@' : '📌';
+        const text = n.type === 'mention' 
+            ? `mentioned you in ${n.room}`
+            : `pinned a message in ${n.room}`;
+        return `<div class="notif-item" data-id="${n._id || n.message?._id}">
+            <span class="notif-icon">${icon}</span>
+            <div class="notif-content">
+                <div class="notif-from">${escapeHtml(n.from)}</div>
+                <div class="notif-text">${text}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    list.querySelectorAll('.notif-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.dataset.id;
+            if (id && room) {
+                const msgEl = document.querySelector(`[data-msg-id="${id}"]`);
+                if (msgEl) {
+                    msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    msgEl.style.outline = '2px solid var(--primary)';
+                    setTimeout(() => msgEl.style.outline = '', 2000);
+                }
+            }
+            document.getElementById('notification-center').style.display = 'none';
+        });
+    });
+}
+
+function renderPinnedBar() {
+    const bar = document.getElementById('pinned-messages-bar');
+    const list = document.getElementById('pinned-messages-list');
+    if (!bar || !list) return;
+    
+    if (pinnedMessages.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    
+    bar.style.display = 'block';
+    list.innerHTML = pinnedMessages.map(m => {
+        const text = (m.text || 'Pinned message').slice(0, 40);
+        return `<button class="pinned-chip" data-mid="${m._id}">${escapeHtml(text)}${(m.text || '').length > 40 ? '...' : ''}</button>`;
+    }).join('');
+    
+    list.querySelectorAll('.pinned-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const el = document.querySelector(`[data-msg-id="${chip.dataset.mid}"]`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.outline = '2px solid var(--primary)';
+                setTimeout(() => el.style.outline = '', 2000);
+            }
+        });
+    });
+}
+
+// ── Mention autocomplete ──
+const mentionDropdown = document.getElementById('mention-dropdown');
+
+function showMentionDropdown(query) {
+    const filtered = onlineUsers.filter(u => 
+        u.toLowerCase().includes(query.toLowerCase()) && u !== username
+    );
+    
+    if (filtered.length === 0) {
+        mentionDropdown.style.display = 'none';
+        mentionDropdownVisible = false;
+        return;
+    }
+    
+    mentionDropdown.innerHTML = filtered.slice(0, 8).map(u => 
+        `<div class="mention-item" data-user="${escapeHtml(u)}">
+            <span class="avatar-sm" style="background:${getColor(u)}">${escapeHtml(u[0].toUpperCase())}</span>
+            <span>${escapeHtml(u)}</span>
+        </div>`
+    ).join('');
+    
+    mentionDropdown.style.display = 'block';
+    mentionDropdownVisible = true;
+    
+    mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+        item.addEventListener('click', () => {
+            insertMention(item.dataset.user);
+        });
+    });
+}
+
+function insertMention(user) {
+    const beforeAt = input.value.lastIndexOf('@', mentionStartPos);
+    input.value = input.value.slice(0, beforeAt) + '@' + user + ' ';
+    mentionDropdown.style.display = 'none';
+    mentionDropdownVisible = false;
+    input.focus();
+    input.selectionStart = input.selectionEnd = input.value.length;
+}
+
+function hideMentionDropdown() {
+    mentionDropdown.style.display = 'none';
+    mentionDropdownVisible = false;
+}
+
 // ── Context Menu Actions ──
-document.addEventListener('click', () => { document.getElementById('context-menu').style.display='none'; document.getElementById('reaction-picker').classList.remove('open'); });
+document.addEventListener('click', (e) => { 
+    if (!e.target.closest('#context-menu')) document.getElementById('context-menu').style.display='none';
+    if (!e.target.closest('#reaction-picker')) document.getElementById('reaction-picker').classList.remove('open');
+    if (!e.target.closest('#mention-dropdown')) hideMentionDropdown();
+    if (!e.target.closest('#notification-center') && !e.target.closest('#notif-btn')) {
+        document.getElementById('notification-center').style.display='none';
+    }
+});
 document.querySelectorAll('.ctx-item').forEach(el => el.addEventListener('click', () => {
     const action = el.dataset.action;
     if (action === 'reply') {
@@ -334,6 +631,11 @@ document.querySelectorAll('.ctx-item').forEach(el => el.addEventListener('click'
         if (newText !== null && newText.trim()) socket.emit('edit message', { _id: contextMsgId, text: newText.trim() });
     } else if (action === 'delete') {
         if (confirm('Delete this message?')) socket.emit('delete message', { _id: contextMsgId });
+    } else if (action === 'pin') {
+        socket.emit('pin message', { _id: contextMsgId, room });
+    } else if (action === 'forward') {
+        forwardMsgId = contextMsgId;
+        showForwardModal();
     }
 }));
 
@@ -348,9 +650,49 @@ document.querySelectorAll('.react-emoji').forEach(el => el.addEventListener('cli
 // ── Typing ──
 input.addEventListener('input', () => {
     if (!socket || !room) return;
+    
+    const cursorPos = input.selectionStart;
+    const textBeforeCursor = input.value.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    
+    if (atMatch) {
+        mentionStartPos = cursorPos - atMatch[0].length;
+        mentionSearch = atMatch[1];
+        showMentionDropdown(mentionSearch);
+        
+        const rect = input.getBoundingClientRect();
+        mentionDropdown.style.left = rect.left + 'px';
+        mentionDropdown.style.top = (rect.top - mentionDropdown.offsetHeight - 8) + 'px';
+    } else {
+        hideMentionDropdown();
+    }
+    
     socket.emit('typing', { user: username, room });
     clearTimeout(typingTimer);
     typingTimer = setTimeout(() => socket.emit('stop typing', { user: username, room }), 1000);
+});
+
+input.addEventListener('keydown', (e) => {
+    if (mentionDropdownVisible && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab')) {
+        e.preventDefault();
+        const items = mentionDropdown.querySelectorAll('.mention-item');
+        if (items.length === 0) return;
+        let idx = Array.from(items).findIndex(i => i.classList.contains('active'));
+        if (e.key === 'ArrowDown' || e.key === 'Tab') idx = idx < items.length - 1 ? idx + 1 : 0;
+        else idx = idx > 0 ? idx - 1 : items.length - 1;
+        items.forEach(i => i.classList.remove('active'));
+        items[idx].classList.add('active');
+        items[idx].style.background = 'var(--primary)';
+        items[idx].style.color = 'white';
+    } else if (mentionDropdownVisible && e.key === 'Enter') {
+        const active = mentionDropdown.querySelector('.mention-item.active');
+        if (active) {
+            e.preventDefault();
+            insertMention(active.dataset.user);
+        }
+    } else if (mentionDropdownVisible && e.key === 'Escape') {
+        hideMentionDropdown();
+    }
 });
 
 // ── File ──
@@ -485,8 +827,15 @@ searchInput.addEventListener('input', () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
         const q = searchInput.value.trim();
-        if (q && socket) socket.emit('search messages', { room, query: q });
-        else { document.getElementById('search-count').textContent=''; document.querySelectorAll('.message.search-hit').forEach(el => {el.classList.remove('search-hit');el.style.outline='';}); }
+        const globalToggle = document.getElementById('search-global');
+        const isGlobal = globalToggle && globalToggle.checked;
+        if (q && socket) socket.emit('search messages', { room: isGlobal ? null : room, query: q });
+        else {
+            document.getElementById('search-count').textContent='';
+            document.querySelectorAll('.message.search-hit').forEach(el => {el.classList.remove('search-hit');el.style.outline='';});
+            const gp = document.getElementById('global-search-results');
+            if (gp) gp.style.display = 'none';
+        }
     }, 400);
 });
 
@@ -541,16 +890,149 @@ form.addEventListener('submit', async (e) => {
     replyTarget = null; document.getElementById('reply-preview').style.display = 'none';
 });
 
+// ── Forward Modal ──
+function showForwardModal() {
+    document.getElementById('forward-modal').style.display = 'block';
+    document.getElementById('forward-search').value = '';
+    loadForwardRooms('');
+    document.getElementById('forward-search').focus();
+}
+
+function loadForwardRooms(query) {
+    const container = document.getElementById('forward-rooms');
+    const rooms = window.chatRooms || [];
+    const filtered = rooms.filter(r => r.toLowerCase().includes(query.toLowerCase()));
+    container.innerHTML = filtered.map(r => {
+        const isDM = r.includes(':dm:');
+        const label = isDM ? '@' + r.split(':dm:').find(u => u !== username) : '#' + r;
+        return `<div class="forward-room-item" data-room="${escapeHtml(r)}">${escapeHtml(label)}</div>`;
+    }).join('');
+    
+    container.querySelectorAll('.forward-room-item').forEach(item => {
+        item.addEventListener('click', () => {
+            socket.emit('forward message', { _id: forwardMsgId, targetRoom: item.dataset.room });
+            document.getElementById('forward-modal').style.display = 'none';
+            forwardMsgId = null;
+        });
+    });
+}
+
+document.getElementById('forward-close').addEventListener('click', () => {
+    document.getElementById('forward-modal').style.display = 'none';
+    forwardMsgId = null;
+});
+
+document.getElementById('forward-search').addEventListener('input', (e) => {
+    loadForwardRooms(e.target.value);
+});
+
+// ── Sound Toggle ──
+function updateSoundIcon() {
+    const on = document.getElementById('sound-icon-on');
+    const off = document.getElementById('sound-icon-off');
+    if (soundEnabled) {
+        on.style.display = 'block';
+        off.style.display = 'none';
+    } else {
+        on.style.display = 'none';
+        off.style.display = 'block';
+    }
+}
+
+document.getElementById('sound-toggle').addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem('chat_sound', soundEnabled);
+    updateSoundIcon();
+});
+
+function playSound() {
+    if (soundEnabled) {
+        try {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        } catch(e) {}
+    }
+}
+
+// ── Notification Center ──
+document.getElementById('notif-btn').addEventListener('click', () => {
+    const nc = document.getElementById('notification-center');
+    if (nc.style.display === 'block') {
+        nc.style.display = 'none';
+    } else {
+        renderNotificationCenter();
+        nc.style.display = 'block';
+    }
+});
+
+document.getElementById('notif-close').addEventListener('click', () => {
+    document.getElementById('notification-center').style.display = 'none';
+});
+
+// ── Keyboard Shortcuts ──
+document.addEventListener('keydown', (e) => {
+    if (e.key === '?' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        const m = document.getElementById('shortcuts-modal');
+        m.style.display = m.style.display === 'block' ? 'none' : 'block';
+    }
+    if (e.key === '/' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        const searchBar = document.getElementById('search-bar');
+        if (!searchBar.classList.contains('open')) {
+            document.getElementById('search-toggle').click();
+        }
+    }
+});
+
+document.getElementById('shortcuts-close').addEventListener('click', () => {
+    document.getElementById('shortcuts-modal').style.display = 'none';
+});
+
+// ── GIF Picker ──
+document.getElementById('gif-search').addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    const results = document.getElementById('gif-results');
+    const loading = document.getElementById('gif-loading');
+    
+    if (!query) { results.innerHTML = ''; return; }
+    
+    loading.style.display = 'block';
+    try {
+        const res = await authFetch(`/api/v1/gifs/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        loading.style.display = 'none';
+        
+        if (data.gifs && data.gifs.length > 0) {
+            results.innerHTML = data.gifs.slice(0, 24).map(g => 
+                `<img class="gif-item" src="${g.url}" data-url="${g.url}" style="cursor:pointer;border-radius:4px;width:100%">`
+            ).join('');
+            results.querySelectorAll('.gif-item').forEach(img => {
+                img.addEventListener('click', () => {
+                    input.value += `[GIF: ${img.dataset.url}]`;
+                    document.getElementById('gif-picker').style.display = 'none';
+                    input.focus();
+                });
+            });
+        } else {
+            results.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">No GIFs found</div>';
+        }
+    } catch(e) {
+        loading.style.display = 'none';
+        results.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">Error loading GIFs</div>';
+    }
+});
+
 // ── Auto Login ──
 const savedToken = localStorage.getItem('chat_token');
 const savedUser = localStorage.getItem('chat_user');
 if (savedToken && savedUser) {
-    authToken = savedToken; username = savedUser;
+    window.sharedUtils.setAuth(savedToken, savedUser);
     document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('app-container').style.display = 'grid';
-    document.getElementById('sidebar-username').textContent = username;
-    document.getElementById('sidebar-avatar').textContent = username[0].toUpperCase();
-    document.getElementById('sidebar-avatar').style.background = getColor(username);
+    window.sharedUtils.updateAppDisplay();
+    document.getElementById('sidebar-username').textContent = savedUser;
+    window.sharedUtils.loadProfileAndUpdateAvatar();
     connectSocket();
     showRoomSelect();
 }

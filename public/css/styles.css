@@ -1,5 +1,10 @@
 *{margin:0;padding:0;box-sizing:border-box}
 
+/* Performance: reduce paint areas */
+.toast,.modal,.dropdown,.context-menu{
+    will-change:transform,opacity;
+}
+
 /* Font size settings */
 [data-font="small"] #messages .message{font-size:.78rem}
 [data-font="small"] #input{font-size:.78rem}
@@ -241,17 +246,34 @@
 }
 
 /* ── Base ── */
+html {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 body{
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     background:var(--bg);
     background-image:var(--bg-pattern);
     min-height:100vh;min-height:100dvh;
+    width:100%;
     display:flex;justify-content:center;align-items:center;
     padding:16px;
     color:var(--text);
     transition:background .4s ease,color .3s ease;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
+    box-sizing: border-box;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 body::before{
     content:'';position:fixed;inset:0;
@@ -281,7 +303,7 @@ body::after{
    3-PANEL APP LAYOUT
    ══════════════════════════════════ */
 #app-container{
-    display:none;width:100vw;height:100vh;height:100dvh;
+    width:100vw;height:100vh;height:100dvh;
     position:fixed;inset:0;z-index:1;
     grid-template-columns:72px 380px 4px 1fr;
     grid-template-rows:1fr;
@@ -330,22 +352,35 @@ body::after{
     display:flex;flex-direction:column;align-items:center;gap:8px;
     padding:12px 10px 8px;width:100%;
     border-top:var(--glass-border);
+    position:relative;
+    z-index:10;
 }
 .sidebar-user{
     display:flex;flex-direction:column;align-items:center;gap:4px;
-    width:100%;padding:4px 0;
+    width:100%;padding:8px 4px;
 }
 .sidebar-avatar{
-    width:36px;height:36px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:.8rem;font-weight:800;color:#fff;
-    box-shadow:0 3px 12px rgba(0,0,0,.2);
+    width:44px;height:44px;border-radius:50%;
+    object-fit:cover;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
     border:2px solid rgba(255,255,255,.15);
+    flex-shrink:0;
+    background:var(--surface-elevated);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:1.1rem;
+    color:var(--text);
+}
+.sidebar-avatar[src=""],.sidebar-avatar:not([src]){
+    border:none;
 }
 .sidebar-username{
-    font-size:.58rem;font-weight:600;color:var(--text-secondary);
+    font-size:.65rem;font-weight:600;color:var(--text-secondary);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     max-width:60px;text-align:center;
+}
+.sidebar-user{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:12px 8px;
 }
 
 /* ── Room Panel (Middle) ── */
@@ -1005,6 +1040,66 @@ body:has(#app-container[style*="grid"])::after{display:none}
 #context-menu .ctx-item:focus{outline:2px solid var(--primary);outline-offset:-2px;background:rgba(var(--primary-rgb),.08)}
 #context-menu .ctx-item.danger{color:var(--accent-red)}
 
+/* ── Mention Dropdown ── */
+#mention-dropdown{box-shadow:0 4px 20px rgba(0,0,0,.2);border-radius:8px}
+#mention-dropdown .mention-item{
+    padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;
+    transition:background .15s;font-size:.85rem;
+}
+#mention-dropdown .mention-item:hover,#mention-dropdown .mention-item.active{
+    background:rgba(var(--primary-rgb),.15);
+}
+
+/* ── Pinned Messages ── */
+.pinned-chip{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:4px 10px;font-size:.75rem;cursor:pointer;margin-right:6px;
+    transition:all .2s;display:inline-block;
+}
+.pinned-chip:hover{background:rgba(var(--primary-rgb),.1);border-color:var(--primary)}
+
+/* ── Notification Center ── */
+.notif-item{
+    padding:12px 16px;display:flex;align-items:center;gap:12px;
+    cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border);
+}
+.notif-item:hover{background:rgba(var(--primary-rgb),.08)}
+.notif-icon{font-size:1.2rem;width:32px;text-align:center}
+.notif-content{flex:1}
+.notif-from{font-weight:600;font-size:.85rem}
+.notif-text{font-size:.78rem;color:var(--text-secondary)}
+
+/* ── Forward Modal ── */
+.forward-room-item{
+    padding:10px 12px;cursor:pointer;border-radius:8px;margin:4px 0;
+    transition:background .15s;font-size:.85rem;
+}
+.forward-room-item:hover{background:rgba(var(--primary-rgb),.1)}
+
+/* ── Shortcut Items ── */
+.shortcut-item{
+    display:flex;align-items:center;gap:12px;padding:8px 0;
+    border-bottom:1px solid var(--border);
+}
+.shortcut-item:last-child{border-bottom:none}
+kbd{
+    background:var(--bg-primary);border:1px solid var(--border);
+    border-radius:4px;padding:2px 8px;font-family:monospace;font-size:.85rem;
+    min-width:28px;text-align:center;
+}
+
+/* ── Notification Badge ── */
+#notif-btn{position:relative}
+#notif-badge{font-size:10px;font-weight:600}
+
+/* ── Pinned Message Style ── */
+.pinned-msg{background:rgba(var(--primary-rgb),.05)!important;border-left:3px solid var(--primary)!important}
+.pin-icon{opacity:.7}
+
+/* ── System Messages ── */
+.system-msg{text-align:center;padding:4px 0;font-size:.78rem;color:var(--text-secondary);opacity:.7}
+.system-msg span{background:var(--surface);padding:2px 10px;border-radius:10px}
+
 /* ══════════════════════════════════
    AUTH OVERLAY
    ══════════════════════════════════ */
@@ -1427,8 +1522,10 @@ body:has(#app-container[style*="grid"])::after{display:none}
     box-shadow:0 3px 12px rgba(0,0,0,.2);
     transition:transform .2s ease;
     border:2px solid rgba(255,255,255,.15);
+    object-fit:cover;
 }
 .msg-wrapper:hover .avatar-msg{transform:scale(1.08)}
+.msg-user-name:hover{text-decoration:underline;color:var(--primary)}
 
 .message{
     max-width:70%;padding:14px 18px;
@@ -1743,127 +1840,405 @@ body:has(#app-container[style*="grid"])::after{display:none}
 }
 
 /* ══════════════════════════════════
-   RESPONSIVE — TABLET (≤900px)
+   RESPONSIVE — ALL SCREEN SIZES
    ══════════════════════════════════ */
-/* ══════════════════════════════════
-   RESPONSIVE — SMALL LAPTOP / TABLET LANDSCAPE (≤1024px)
-   ══════════════════════════════════ */
-@media(max-width:1024px){
-    #app-container{grid-template-columns:0px 300px 4px 1fr}
-    #sidebar{display:none}
-    #chat-container{max-width:100%;height:96vh;height:96dvh;border-radius:18px}
-    .auth-card{max-width:380px;padding:36px 32px}
-    .room-card{max-width:440px;padding:28px}
+
+/* Base app container responsive */
+#app-container {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* ══════════════════════════════════
-   RESPONSIVE — TABLET PORTRAIT (≤768px)
-   Mobile-style: room list + chat slide
-   ══════════════════════════════════ */
-@media(max-width:768px){
-    body{padding:0}
-    body::after{display:none}
-    #chat-container{
-        height:100vh;height:100dvh;
-        border-radius:0;border:none;max-width:100%;
-    }
-    #resize-handle{display:none!important}
-    #app-container{grid-template-columns:1fr!important}
-    #sidebar{display:none!important}
-    #room-panel{display:flex}
-    #chat-container{
-        position:absolute;inset:0;z-index:10;
-        transform:translateX(100%);
-        transition:transform .3s cubic-bezier(.4,0,.2,1);
-    }
-    #app-container.show-chat #chat-container{transform:translateX(0)}
-    #app-container.show-chat #room-panel{pointer-events:none}
-    .mobile-back{display:flex!important}
+/* ── Extra Large Desktop (≥1400px) ── */
+@media (min-width: 1400px) {
+    #chat-container { max-width: 1000px; }
+    .auth-card { max-width: 440px; padding: 48px 44px; }
+    .room-card { max-width: 540px; padding: 40px; }
+}
 
+/* ── Large Desktop (1025px - 1399px) ── */
+@media (min-width: 1025px) and (max-width: 1399px) {
+    #app-container { grid-template-columns: 72px 320px 4px 1fr; }
+    #chat-container { max-width: 900px; }
+}
+
+/* ── Tablet Landscape (769px - 1024px) ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #app-container { grid-template-columns: 60px 280px 4px 1fr; }
+    #sidebar { 
+        display: flex !important;
+        width: 60px !important;
+    }
+    .sidebar-btn span { display: none !important; }
+    .sidebar-user { flex-direction: column !important; }
+    .sidebar-username { display: none !important; }
+    #chat-container { 
+        max-width: 100%; 
+        height: 96vh; 
+        height: 96dvh; 
+        border-radius: 18px; 
+    }
+    .auth-card { max-width: 380px; padding: 36px 32px; }
+    .room-card { max-width: 440px; padding: 28px; }
+}
+
+/* ── Tablet Portrait / Mobile (≤768px) ── */
+@media (max-width: 768px) {
+    html, body {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    body { 
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+    }
+    body::after { display: none !important; }
+    body::before { display: none !important; }
+    
+    #app-container {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-width: 100% !important;
+        position: relative !important;
+        grid-template-columns: none !important;
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    /* Sidebar becomes compact header on mobile */
+    #sidebar {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        height: 56px !important;
+        padding: 0 16px !important;
+        border-right: none !important;
+        border-bottom: var(--glass-border) !important;
+        position: relative !important;
+        z-index: 20;
+    }
+    
+    .sidebar-top {
+        flex: 0 0 auto !important;
+        flex-direction: row !important;
+        width: auto !important;
+    }
+    
+    .sidebar-nav {
+        flex-direction: row !important;
+        gap: 8px !important;
+        flex: 1 !important;
+        justify-content: center !important;
+    }
+    
+    .sidebar-btn span { display: none !important; }
+    .sidebar-btn svg { margin: 0 !important; }
+    
+    .sidebar-bottom {
+        flex-direction: row !important;
+        gap: 12px !important;
+        padding: 0 !important;
+        width: auto !important;
+        border-top: none !important;
+    }
+    
+    .sidebar-user {
+        flex-direction: row !important;
+        gap: 10px !important;
+        padding: 0 !important;
+        width: auto !important;
+    }
+    
+    .sidebar-logo { margin-bottom: 0 !important; }
+    
+    .sidebar-avatar {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    
+    #resize-handle { display: none !important; }
+    
+    #room-panel {
+        display: flex !important;
+        flex-direction: column;
+        width: 100% !important;
+        height: calc(100% - 56px) !important;
+        position: absolute !important;
+        top: 56px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 10;
+        flex-shrink: 0;
+        background: var(--surface);
+    }
+    
+    #chat-container {
+        display: flex !important;
+        flex-direction: column;
+        width: 100% !important;
+        height: 100% !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 20;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 0 !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+    }
+    
+    #app-container.show-chat #chat-container { transform: translateX(0) !important; }
+    #app-container.show-chat #room-panel {
+        opacity: 0.2;
+        pointer-events: none;
+    }
+    
+    .mobile-back {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: none;
+        background: rgba(var(--primary-rgb), 0.1);
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
     /* Auth */
-    #auth-overlay{padding:16px}
-    .auth-card{margin:8px;padding:32px 24px;border-radius:20px;max-width:100%}
-    .auth-card h1{font-size:1.35rem}
-    .auth-card .logo{width:52px;height:52px;font-size:1.4rem}
-    .auth-input{padding:13px 16px;font-size:.88rem}
-
+    #auth-overlay { 
+        padding: 12px !important; 
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .auth-card { 
+        margin: 8px !important; 
+        padding: 28px 20px !important; 
+        border-radius: 20px !important; 
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .auth-card h1 { font-size: 1.3rem; }
+    .auth-card .logo { width: 48px; height: 48px; font-size: 1.3rem; }
+    .auth-input { padding: 12px 14px; font-size: 0.86rem; }
+    
     /* Room */
-    #room-overlay{padding:12px}
-    .room-card{margin:8px;padding:24px 20px;border-radius:20px;max-width:100%}
-    .room-card h2{font-size:1.15rem}
-    .room-create{flex-direction:column}
-    .room-create input{width:100%}
-    .room-create-btn{width:100%;text-align:center;padding:12px}
-
+    #room-overlay { padding: 8px !important; }
+    .room-card { margin: 8px !important; padding: 20px 16px !important; border-radius: 20px !important; max-width: 100% !important; width: 100% !important; }
+    .room-card h2 { font-size: 1.1rem; }
+    .room-create { flex-direction: column; }
+    .room-create input { width: 100%; }
+    .room-create-btn { width: 100%; text-align: center; padding: 12px; }
+    
     /* Header */
-    #header{padding:12px 14px;gap:10px}
-    .room-icon{width:34px;height:34px;border-radius:10px;font-size:.8rem}
-    .room-name{font-size:.9rem}
-    .room-meta{font-size:.65rem}
-    .hdr-btn{width:32px;height:32px;border-radius:10px;font-size:.8rem}
-
+    #header { padding: 10px 12px !important; gap: 8px; }
+    .room-icon { width: 32px; height: 32px; border-radius: 10px; font-size: 0.75rem; }
+    .room-name { font-size: 0.88rem; }
+    .room-meta { font-size: 0.62rem; }
+    .hdr-btn { width: 30px; height: 30px; border-radius: 8px; font-size: 0.75rem; }
+    
     /* Messages */
-    #messages{padding:14px 12px}
-    .message{max-width:84%;padding:10px 14px;border-radius:16px;font-size:.84rem}
-    .msg-wrapper .avatar-msg{width:26px;height:26px;font-size:.58rem}
-    .msg-wrapper{gap:6px}
-    .message img.chat-img{max-width:180px;max-height:160px}
-
+    #messages { padding: 12px 10px !important; }
+    .message { max-width: 82%; padding: 9px 12px; border-radius: 14px; font-size: 0.82rem; }
+    .msg-wrapper .avatar-msg { width: 24px; height: 24px; font-size: 0.55rem; }
+    .msg-wrapper { gap: 5px; }
+    .message img.chat-img { max-width: 160px; max-height: 140px; }
+    
     /* Input */
-    #form{padding:10px 10px;gap:6px}
-    .inp-btn{width:34px;height:34px;font-size:.88rem}
-    #input{padding:10px 14px;font-size:.84rem;border-radius:12px}
-    #send-btn{width:38px;height:38px;border-radius:12px}
-
+    #form { padding: 8px 10px !important; gap: 5px; }
+    .inp-btn { width: 32px; height: 32px; font-size: 0.85rem; }
+    #input { padding: 9px 12px; font-size: 0.82rem; border-radius: 12px; }
+    #send-btn { width: 36px; height: 36px; border-radius: 10px; }
+    
     /* Emoji */
-    #emoji-picker{left:8px;right:8px;width:auto;bottom:60px;border-radius:16px}
-    .emoji-grid{grid-template-columns:repeat(7,1fr)}
-
+    #emoji-picker { left: 6px !important; right: 6px !important; width: auto !important; bottom: 56px !important; border-radius: 14px; }
+    .emoji-grid { grid-template-columns: repeat(6, 1fr); }
+    
     /* Users panel */
-    #users-panel{padding:10px 14px}
-    .user-chip{font-size:.72rem;padding:3px 10px 3px 3px}
-
+    #users-panel { padding: 8px 12px !important; }
+    .user-chip { font-size: 0.7rem; padding: 3px 8px 3px 3px; }
+    
     /* Overlays */
-    #theme-menu{right:4px;top:52px}
-    #context-menu{min-width:160px}
-
+    #theme-menu { right: 4px; top: 48px; }
+    #context-menu { min-width: 150px; }
+    
     /* Search */
-    #search-bar{padding:10px 14px}
-    #search-bar.open{gap:8px}
+    #search-bar { padding: 8px 12px !important; }
+    #search-bar.open { gap: 6px; }
 }
 
-/* ══════════════════════════════════
-   RESPONSIVE — SMALL PHONE (≤380px)
-   ══════════════════════════════════ */
-@media(max-width:380px){
-    .auth-card{padding:28px 18px}
-    .auth-card h1{font-size:1.2rem}
-    .auth-btn{padding:13px;font-size:.85rem}
-    .room-card{padding:20px 16px}
-    .room-item{padding:10px 12px;gap:8px}
-    .room-item .ri-icon{width:32px;height:32px;font-size:.75rem}
-    .room-item .ri-name{font-size:.82rem}
-    #header{padding:10px 10px;gap:8px}
-    .room-icon{width:30px;height:30px;font-size:.75rem}
-    .hdr-btn{width:30px;height:30px;font-size:.75rem}
-    #form{padding:8px 8px;gap:5px}
-    .inp-btn{width:32px;height:32px}
-    #send-btn{width:36px;height:36px}
-    #input{padding:9px 12px;font-size:.82rem}
-    .message{max-width:88%;padding:9px 12px;font-size:.82rem}
-    .emoji-grid{grid-template-columns:repeat(6,1fr)}
+/* ── Large Phones (481px - 768px) ── */
+@media (min-width: 481px) and (max-width: 768px) {
+    .auth-card { max-width: 420px; }
 }
 
-/* ══════════════════════════════════
-   RESPONSIVE — LARGE DESKTOP (≥1200px)
-   ══════════════════════════════════ */
-@media(min-width:1200px){
-    #chat-container{max-width:960px}
-    .auth-card{max-width:420px;padding:48px 44px}
-    .room-card{max-width:520px;padding:40px}
+/* ── Small Phones (≤480px) ── */
+@media (max-width: 480px) {
+    html, body {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    body {
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+    }
+    
+    #app-container {
+        width: 100% !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+    }
+    
+    .auth-card { 
+        padding: 20px 14px !important; 
+        margin: 4px !important; 
+        border-radius: 16px !important; 
+        width: 100% !important;
+    }
+    .auth-card h1 { font-size: 1.2rem; }
+    .auth-input { padding: 11px 12px; font-size: 0.84rem; }
+    .auth-btn { padding: 13px; font-size: 0.86rem; }
+    
+    .room-card { padding: 16px 14px; }
+    .room-item { padding: 9px 10px; gap: 6px; }
+    .room-item .ri-icon { width: 30px; height: 30px; font-size: 0.72rem; }
+    .room-item .ri-name { font-size: 0.8rem; }
+    
+    #header { padding: 8px 10px !important; gap: 6px; }
+    .room-icon { width: 28px; height: 28px; font-size: 0.7rem; }
+    .hdr-btn { width: 28px; height: 28px; font-size: 0.72rem; }
+    .mobile-back { width: 28px; height: 28px; }
+    
+    #form { padding: 6px 8px !important; gap: 4px; }
+    .inp-btn { width: 30px; height: 30px; font-size: 0.8rem; }
+    #send-btn { width: 34px; height: 34px; }
+    #input { padding: 8px 10px; font-size: 0.8rem; }
+    
+    .message { max-width: 85%; padding: 8px 10px; font-size: 0.8rem; border-radius: 12px; }
+    .emoji-grid { grid-template-columns: repeat(5, 1fr); }
+    
+    #messages { padding: 10px 8px !important; }
+    .room-name { font-size: 0.85rem; }
+    
+    #auth-overlay { padding: 8px !important; }
 }
-@media(min-width:1600px){
-    #chat-container{max-width:1100px}
+
+/* ── Extra Small Phones (≤320px) ── */
+@media (max-width: 320px) {
+    html, body {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    body {
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+    }
+    
+    .auth-card { 
+        padding: 16px 10px !important; 
+        margin: 2px !important; 
+        border-radius: 12px !important;
+    }
+    .auth-card h1 { font-size: 1.05rem; }
+    .auth-input { padding: 9px 10px; font-size: 0.78rem; }
+    .auth-btn { padding: 11px; font-size: 0.8rem; }
+    
+    .room-card { padding: 12px 10px; }
+    .room-item { padding: 7px 8px; gap: 5px; }
+    .room-item .ri-icon { width: 26px; height: 26px; font-size: 0.65rem; }
+    .room-item .ri-name { font-size: 0.75rem; }
+    
+    #header { padding: 6px 8px !important; gap: 5px; }
+    .room-icon { width: 24px; height: 24px; font-size: 0.65rem; }
+    .hdr-btn { width: 24px; height: 24px; font-size: 0.65rem; }
+    .mobile-back { width: 24px; height: 24px; font-size: 1rem; }
+    
+    #form { padding: 5px 6px !important; gap: 3px; }
+    .inp-btn { width: 28px; height: 28px; font-size: 0.75rem; }
+    #send-btn { width: 30px; height: 30px; }
+    #input { padding: 6px 8px; font-size: 0.76rem; }
+    
+    .message { max-width: 88%; padding: 6px 8px; font-size: 0.76rem; border-radius: 10px; }
+    .emoji-grid { grid-template-columns: repeat(4, 1fr); }
+    
+    #messages { padding: 8px 6px !important; }
+}
+
+/* ── Extra Small Phones (≤320px) ── */
+@media (max-width: 320px) {
+    body { padding: 0; margin: 0; }
+    
+    #app-container { width: 100vw; height: 100vh; height: 100dvh; }
+    
+    .auth-card { padding: 20px 12px !important; margin: 4px; border-radius: 16px !important; }
+    .auth-card h1 { font-size: 1.1rem; }
+    .auth-input { padding: 10px 12px; font-size: 0.82rem; }
+    .auth-btn { padding: 12px; font-size: 0.84rem; }
+    
+    .room-card { padding: 16px 12px; }
+    .room-item { padding: 8px 10px; gap: 6px; }
+    .room-item .ri-icon { width: 28px; height: 28px; font-size: 0.7rem; }
+    .room-item .ri-name { font-size: 0.78rem; }
+    
+    #header { padding: 8px 8px; gap: 6px; }
+    .room-icon { width: 28px; height: 28px; font-size: 0.7rem; }
+    .hdr-btn { width: 28px; height: 28px; font-size: 0.7rem; }
+    .mobile-back { width: 32px; height: 32px; }
+    
+    #form { padding: 6px 8px; gap: 4px; }
+    .inp-btn { width: 30px; height: 30px; }
+    #send-btn { width: 34px; height: 34px; }
+    #input { padding: 8px 10px; font-size: 0.8rem; }
+    
+    .message { max-width: 90%; padding: 8px 10px; font-size: 0.8rem; }
+    .emoji-grid { grid-template-columns: repeat(5, 1fr); }
+    
+    #messages { padding: 10px 8px; }
+    .room-name { font-size: 0.85rem; }
+}
+
+/* ── Very Short Viewports (height < 500px) ── */
+@media (max-height: 500px) {
+    #app-container { min-height: 100vh; height: auto; }
+    
+    #header { padding: 8px 12px; }
+    #form { padding: 6px 10px; }
+    #messages { padding: 8px 12px; }
+    
+    .auth-card { padding: 20px; }
+    .auth-card .logo { width: 40px; height: 40px; font-size: 1.2rem; }
+}
+
+/* ── Extra Large Screens (≥1920px) ── */
+@media (min-width: 1920px) {
+    #chat-container { max-width: 1200px; }
+    .auth-card { max-width: 480px; }
+    .room-card { max-width: 600px; }
 }
 
 /* ── Layout Size Toggle ── */
@@ -1899,9 +2274,7 @@ body:has(#app-container[style*="grid"])::after{display:none}
     #layout-toggle{display:none}
 }
 
-/* ══════════════════════════════════
-   HOVER MEDIA QUERY (touch devices)
-   ══════════════════════════════════ */
+/* ── Touch devices (no hover) ── */
 @media(hover:none){
     .message.own:hover,.message.other:hover{transform:none}
     .auth-btn:hover{transform:none}
@@ -1942,4 +2315,16 @@ body:has(#app-container[style*="grid"])::after{display:none}
         background:#fff;display:flex!important;
     }
     .message{box-shadow:none;border:1px solid #ddd}
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

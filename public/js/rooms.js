@@ -118,7 +118,10 @@ function joinRoom(name, password) {
         el.classList.toggle('active', el.dataset.room === name);
     });
     // On mobile, show chat panel
-    document.getElementById('app-container').classList.add('show-chat');
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        document.getElementById('app-container').classList.add('show-chat');
+    }
     messages.innerHTML = `
         <li class="skeleton-msg left"><div class="sk-line" style="width:70%"></div><div class="sk-line"></div></li>
         <li class="skeleton-msg right"><div class="sk-line" style="width:60%"></div><div class="sk-line"></div></li>
@@ -128,3 +131,47 @@ function joinRoom(name, password) {
     socket.emit('join room', { room: name, password });
     input.focus();
 }
+
+// Go back to room list on mobile
+function goBackToRoomList() {
+    room = null;
+    document.getElementById('app-container').classList.remove('show-chat');
+    document.getElementById('chat-view').style.display = 'none';
+    document.getElementById('chat-empty').style.display = 'flex';
+    document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+}
+
+// Handle window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        updateAppDisplay();
+        // On desktop, always show room panel
+        if (window.innerWidth > 768) {
+            const app = document.getElementById('app-container');
+            app.classList.remove('show-chat');
+        }
+    }, 50);
+});
+
+// Handle orientation change on mobile
+window.addEventListener('orientationchange', () => {
+    setTimeout(updateAppDisplay, 100);
+});
+
+// Add mobile back button functionality
+const mobileBackBtn = document.getElementById('mobile-back-btn');
+if (mobileBackBtn) {
+    mobileBackBtn.addEventListener('click', goBackToRoomList);
+}
+
+// Also handle Escape key to go back on mobile
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window.innerWidth <= 768) {
+        const app = document.getElementById('app-container');
+        if (app && app.classList.contains('show-chat') && room) {
+            goBackToRoomList();
+        }
+    }
+});

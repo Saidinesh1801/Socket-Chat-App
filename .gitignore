@@ -3,3 +3,4 @@ uploads/
 coverage/
 .env
 *.zip
+dist/

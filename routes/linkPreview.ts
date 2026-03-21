@@ -1,9 +1,9 @@
-const express = require('express');
-const httpAuth = require('../middleware/httpAuth');
+import { Router, Request, Response } from 'express';
+import httpAuth from '../middleware/httpAuth';
 
-const router = express.Router();
+const router = Router();
 
-function isBlockedUrl(urlStr) {
+function isBlockedUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr);
     if (!['http:', 'https:'].includes(parsed.protocol)) return true;
@@ -24,10 +24,16 @@ function isBlockedUrl(urlStr) {
   }
 }
 
-router.get('/', httpAuth, async (req, res) => {
-  const url = req.query.url;
-  if (!url) return res.status(400).json({ error: 'URL required' });
-  if (isBlockedUrl(url)) return res.status(403).json({ error: 'URL not allowed' });
+router.get('/', httpAuth, async (req: Request, res: Response): Promise<void> => {
+  const url = req.query.url as string;
+  if (!url) {
+    res.status(400).json({ error: 'URL required' });
+    return;
+  }
+  if (isBlockedUrl(url)) {
+    res.status(403).json({ error: 'URL not allowed' });
+    return;
+  }
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
@@ -39,7 +45,7 @@ router.get('/', httpAuth, async (req, res) => {
     clearTimeout(timeout);
     const text = await resp.text();
     const html = text.slice(0, 50000);
-    const getMetaContent = (name) => {
+    const getMetaContent = (name: string): string => {
       const m = html.match(new RegExp(`<meta[^>]*(?:property|name)=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i'))
         || html.match(new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*(?:property|name)=["']${name}["']`, 'i'));
       return m ? m[1] : '';
@@ -56,4 +62,4 @@ router.get('/', httpAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

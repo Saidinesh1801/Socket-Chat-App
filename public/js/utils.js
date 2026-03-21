@@ -3,16 +3,29 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-let socket, username, room, authToken;
+// ── Global State ──
+let socket, username, room;
+let authToken = localStorage.getItem('chat_token') || '';
+const authState = { token: authToken, user: '' };
 
-// ── Helpers ──
+function authFetch(url, options = {}) {
+    options = options || {};
+    options.headers = options.headers || {};
+    if (authState.token) options.headers['Authorization'] = 'Bearer ' + authState.token;
+    return fetch(url, options);
+}
+
 function escapeHtml(s) {
     if (!s) return '';
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
-const avatarColors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316','#6366f1','#14b8a6'];
-function getColor(name) { let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); return avatarColors[Math.abs(h)%avatarColors.length]; }
 function formatSize(b) { if(!b)return '0 B'; const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k)); return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]; }
+const avatarColors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316','#6366f1','#14b8a6'];
+function getColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+    return avatarColors[Math.abs(h) % avatarColors.length];
+}
 
 // ── Markdown-lite ──
 function renderMarkdown(text) {
@@ -130,8 +143,21 @@ function showSettingsSection(sectionId) {
     if (sectionId === 'account' && username) {
         const av = document.getElementById('sd-account-avatar');
         const nm = document.getElementById('sd-account-name');
+        const sidebarAvatar = document.getElementById('sidebar-avatar');
         if (av) { av.textContent = username.charAt(0).toUpperCase(); av.style.background = getColor(username); }
         if (nm) nm.textContent = username;
+        authFetch('/api/v1/profile').then(r => r.json()).then(p => {
+            if (p.avatar) {
+                const img = document.getElementById('sd-avatar-img');
+                img.src = p.avatar; img.style.display = 'block';
+                if (sidebarAvatar) {
+                    sidebarAvatar.src = p.avatar;
+                    sidebarAvatar.dataset.avatarUrl = p.avatar;
+                }
+            }
+            if (p.status) document.getElementById('sd-status-input').value = p.status;
+            if (p.createdAt) document.getElementById('sd-account-joined').textContent = 'Member since ' + new Date(p.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }).catch(() => {});
     }
 
     // Sync encryption settings
@@ -575,13 +601,6 @@ function getDateLabel(ts) {
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
-// ── Auth Fetch Helper ──
-function authFetch(url, options = {}) {
-    options.headers = options.headers || {};
-    if (authToken) options.headers['Authorization'] = 'Bearer ' + authToken;
-    return fetch(url, options);
-}
-
 // ── Resize Handle (drag to resize room / chat columns) ──
 (function() {
     const handle = document.getElementById('resize-handle');
@@ -675,3 +694,744 @@ document.getElementById('e2e-toggle').addEventListener('change', (e) => {
 document.getElementById('e2e-key-input').addEventListener('input', (e) => {
     setE2EKey(e.target.value);
 });
+
+// ── Avatar Upload ──
+document.getElementById('avatar-upload-btn').addEventListener('click', () => {
+    document.getElementById('avatar-file-input').click();
+});
+document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('avatar', file);
+    const uploadBtn = document.getElementById('avatar-upload-btn');
+    const originalText = uploadBtn.textContent;
+    uploadBtn.textContent = 'Uploading...';
+    uploadBtn.disabled = true;
+    try {
+        const res = await authFetch('/api/v1/profile/avatar', { method: 'POST', body: fd });
+        console.log('Upload response status:', res.status);
+        const data = await res.json();
+        console.log('Upload response data:', data);
+        if (data.avatar) {
+            const img = document.getElementById('sd-avatar-img');
+            if (img) {
+              img.src = data.avatar; 
+              img.style.display = 'block';
+            }
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+              sidebarAvatar.src = data.avatar;
+            }
+        } else if (data.error) {
+            window.sharedUtils.showNotification('Upload failed: ' + data.error);
+        } else {
+            console.log('Upload response unexpected:', data);
+            window.sharedUtils.showNotification('Upload failed: Unexpected response');
+        }
+    } catch (err) {
+        console.error('Avatar upload error:', err);
+        window.sharedUtils.showNotification('Failed to upload avatar. Please try again. Check console for details.');
+    } finally {
+        uploadBtn.textContent = originalText;
+        uploadBtn.disabled = false;
+    }
+});
+
+// ── Avatar API Categories ──
+let avatarCategories = [
+  { id: 'anime', name: 'Anime', query: 'anime character portrait' },
+  { id: 'superhero', name: 'Superhero', query: 'superhero marvel dc portrait' },
+  { id: 'movies', name: 'Movies', query: 'movie character portrait' },
+  { id: 'gaming', name: 'Gaming', query: 'video game character portrait' },
+  { id: 'portrait', name: 'Portrait', query: 'portrait face' },
+  { id: 'nature', name: 'Nature', query: 'nature landscape portrait' },
+  { id: 'cyberpunk', name: 'Cyberpunk', query: 'cyberpunk neon portrait' },
+  { id: 'fantasy', name: 'Fantasy', query: 'fantasy magic portrait' },
+];
+
+let avatarResults = [];
+let currentPage = 1;
+let currentQuery = 'anime character portrait';
+let isLoadingAvatars = false;
+
+// Fetch avatars from API (like wallpapers)
+async function fetchAvatarsAPI(query, page = 1) {
+  if (isLoadingAvatars) return;
+  isLoadingAvatars = true;
+  try {
+    const res = await authFetch(`/api/v1/profile/avatars?q=${encodeURIComponent(query)}&page=${page}`);
+    const data = await res.json();
+    if (!data.error) {
+      if (page === 1) {
+        avatarResults = data.results || [];
+      } else {
+        avatarResults = [...avatarResults, ...(data.results || [])];
+      }
+      currentPage = data.current || page;
+    }
+  } catch (e) {
+    console.error('Failed to fetch avatars:', e);
+  }
+  isLoadingAvatars = false;
+}
+
+// Legacy fallback presets (only used if API fails)
+const fallbackPresets = {
+  colorful: [
+    { id: 'red', name: 'Red', url: 'https://api.dicebear.com/7.x/initials/svg?seed=red&backgroundColor=ff6b6b' },
+    { id: 'blue', name: 'Blue', url: 'https://api.dicebear.com/7.x/initials/svg?seed=blue&backgroundColor=4dabf7' },
+    { id: 'green', name: 'Green', url: 'https://api.dicebear.com/7.x/initials/svg?seed=green&backgroundColor=69db7c' },
+    { id: 'yellow', name: 'Yellow', url: 'https://api.dicebear.com/7.x/initials/svg?seed=yellow&backgroundColor=ffd43b' },
+    { id: 'purple', name: 'Purple', url: 'https://api.dicebear.com/7.x/initials/svg?seed=purple&backgroundColor=da77f2' },
+    { id: 'orange', name: 'Orange', url: 'https://api.dicebear.com/7.x/initials/svg?seed=orange&backgroundColor=ffa94d' },
+    { id: 'pink', name: 'Pink', url: 'https://api.dicebear.com/7.x/initials/svg?seed=pink&backgroundColor=f783ac' },
+    { id: 'teal', name: 'Teal', url: 'https://api.dicebear.com/7.x/initials/svg?seed=teal&backgroundColor=38d9a9' },
+  ],
+};
+
+let presetAvatars = fallbackPresets;
+
+// Initialize on load - run immediately and on DOM ready
+function initAll() {
+  initRemoveButton();
+  initAvatarUpload();
+  initAvatarPreviewModal();
+  initAvatarPresets();
+  initAvatarUrlInput();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAll);
+} else {
+  initAll();
+}
+
+// Avatar preview modal - click sidebar avatar
+function initAvatarPreviewModal() {
+  const sidebarAvatar = document.getElementById('sidebar-avatar');
+  const modal = document.getElementById('avatar-preview-modal');
+  const bigImg = document.getElementById('avatar-preview-big');
+  const closeBtn = document.getElementById('avatar-preview-close');
+  const editBtn = document.getElementById('avatar-preview-edit');
+  
+  if (!sidebarAvatar || !modal) {
+    console.log('Modal or sidebar not found:', { sidebarAvatar: !!sidebarAvatar, modal: !!modal });
+    return;
+  }
+  
+  sidebarAvatar.addEventListener('click', () => {
+    let avatarUrl = sidebarAvatar.src;
+    
+    if (!avatarUrl || avatarUrl === window.location.href) {
+      avatarUrl = sidebarAvatar.dataset.avatarUrl || '';
+    }
+    
+    if (avatarUrl) {
+      if (bigImg) bigImg.src = avatarUrl;
+      if (modal) modal.style.display = 'flex';
+    } else {
+      showMiddlePanel('settings');
+      showSettingsSection('account');
+    }
+  });
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      if (modal) modal.style.display = 'none';
+    });
+  }
+  
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+  }
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.style.display !== 'none') {
+      modal.style.display = 'none';
+    }
+  });
+  
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      if (modal) modal.style.display = 'none';
+      showMiddlePanel('settings');
+      showSettingsSection('account');
+    });
+  }
+}
+
+// Avatar upload and crop
+let uploadedImage = null;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+
+function initAvatarUpload() {
+  const uploadBtn = document.getElementById('avatar-upload-btn');
+  const fileInput = document.getElementById('avatar-file-input');
+  const cropSection = document.getElementById('avatar-crop-section');
+  const canvas = document.getElementById('avatar-crop-canvas');
+  const cancelBtn = document.getElementById('avatar-crop-cancel');
+  const applyBtn = document.getElementById('avatar-crop-apply');
+  
+  if (!uploadBtn || !fileInput) return;
+  
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        uploadedImage = img;
+        cropOffsetX = 0;
+        cropOffsetY = 0;
+        drawCropPreview();
+        if (cropSection) cropSection.style.display = 'block';
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  
+  function drawCropPreview() {
+    if (!uploadedImage || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Calculate scale to cover the circle
+    const scale = Math.max(size / uploadedImage.width, size / uploadedImage.height);
+    const w = uploadedImage.width * scale;
+    const h = uploadedImage.height * scale;
+    const x = (size - w) / 2 + cropOffsetX;
+    const y = (size - h) / 2 + cropOffsetY;
+    
+    // Create circular clip
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    
+    ctx.drawImage(uploadedImage, x, y, w, h);
+  }
+  
+  // Drag to reposition
+  let isDragging = false;
+  let lastX, lastY;
+  
+  canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+  
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    cropOffsetX += e.clientX - lastX;
+    cropOffsetY += e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    drawCropPreview();
+  });
+  
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+  
+  // Cancel
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      if (cropSection) cropSection.style.display = 'none';
+      uploadedImage = null;
+      fileInput.value = '';
+    });
+  }
+  
+  // Apply - convert to blob and upload
+  if (applyBtn) {
+    applyBtn.addEventListener('click', async () => {
+      if (!uploadedImage) return;
+      
+      // Create cropped circular image
+      const size = 200;
+      const outputCanvas = document.createElement('canvas');
+      outputCanvas.width = size;
+      outputCanvas.height = size;
+      const ctx = outputCanvas.getContext('2d');
+      
+      const scale = Math.max(size / uploadedImage.width, size / uploadedImage.height);
+      const w = uploadedImage.width * scale;
+      const h = uploadedImage.height * scale;
+      const x = (size - w) / 2 + cropOffsetX;
+      const y = (size - h) / 2 + cropOffsetY;
+      
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(uploadedImage, x, y, w, h);
+      
+      outputCanvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('avatar', blob, 'avatar.png');
+        
+        try {
+          const res = await authFetch('/api/v1/profile/avatar', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (!data.error) {
+            const img = document.getElementById('sd-avatar-img');
+            if (img) { img.src = data.avatar; img.style.display = 'block'; }
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+              sidebarAvatar.src = data.avatar;
+              sidebarAvatar.dataset.avatarUrl = data.avatar;
+            }
+            if (cropSection) cropSection.style.display = 'none';
+            window.sharedUtils.showNotification('Avatar uploaded successfully!');
+          } else {
+            window.sharedUtils.showNotification(data.error, 'error');
+          }
+        } catch (e) {
+          window.sharedUtils.showNotification('Failed to upload avatar');
+        }
+      }, 'image/png');
+    });
+  }
+}
+
+// Init avatar presets click
+let selectedAvatar = null;
+
+function initAvatarPresets() {
+  document.querySelectorAll('[data-av]').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      // Get the avatar URL from the image src
+      const img = card.querySelector('img');
+      const url = img.src;
+      const presetId = card.dataset.av;
+      const category = card.dataset.cat || 'cool';
+      
+      // Show preview
+      selectedAvatar = { url, presetId, category };
+      const previewImg = document.getElementById('avatar-preview-img');
+      const previewText = document.getElementById('avatar-preview-text');
+      const applyBtn = document.getElementById('avatar-apply-btn');
+      
+      if (previewImg) {
+        previewImg.src = url;
+        previewImg.style.display = 'inline-block';
+      }
+      if (previewText) previewText.textContent = 'Avatar selected! Click Apply to save.';
+      if (applyBtn) applyBtn.style.display = 'block';
+    });
+  });
+  
+  // Apply button
+  const applyBtn = document.getElementById('avatar-apply-btn');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      if (!selectedAvatar) return;
+      
+      authFetch('/api/v1/profile/avatar/preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presetId: selectedAvatar.presetId, category: selectedAvatar.category })
+      }).then(res => res.json()).then(data => {
+        if (!data.error) {
+          const url = data.avatar;
+          const img = document.getElementById('sd-avatar-img');
+          if (img) { img.src = url; img.style.display = 'block'; }
+          const sidebarAvatar = document.getElementById('sidebar-avatar');
+          if (sidebarAvatar) {
+            sidebarAvatar.src = url;
+            sidebarAvatar.dataset.avatarUrl = url;
+            console.log('Preset avatar set to:', url);
+          }
+          window.sharedUtils.showNotification('Avatar set successfully!');
+          // Reset preview
+          selectedAvatar = null;
+          const previewText = document.getElementById('avatar-preview-text');
+          if (previewText) previewText.textContent = 'Avatar set!';
+          if (applyBtn) applyBtn.style.display = 'none';
+        } else {
+          window.sharedUtils.showNotification(data.error, 'error');
+        }
+      }).catch(e => window.sharedUtils.showNotification('Failed to set avatar'));
+    });
+  }
+}
+
+// Init remove button
+function initRemoveButton() {
+  const btn = document.getElementById('avatar-remove-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (!confirm('Remove your avatar?')) return;
+    try {
+      const res = await authFetch('/api/v1/profile/avatar', { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.error) {
+        const img = document.getElementById('sd-avatar-img');
+        if (img) { img.style.display = 'none'; img.src = ''; }
+        const sidebarAvatar = document.getElementById('sidebar-avatar');
+        if (sidebarAvatar) {
+          sidebarAvatar.src = '';
+          sidebarAvatar.textContent = username ? username[0].toUpperCase() : '?';
+          sidebarAvatar.style.background = getColor(username || 'U');
+          delete sidebarAvatar.dataset.avatarUrl;
+        }
+      } else {
+        window.sharedUtils.showNotification(data.error, 'error');
+      }
+    } catch (e) { window.sharedUtils.showNotification('Failed to remove avatar'); }
+  });
+}
+
+// Init URL input for custom avatar
+function initAvatarUrlInput() {
+  const urlInput = document.getElementById('avatar-url-input');
+  const urlBtn = document.getElementById('avatar-url-btn');
+  const urlPreview = document.getElementById('avatar-url-preview');
+  const urlImg = document.getElementById('avatar-url-img');
+  const urlApplyBtn = document.getElementById('avatar-url-apply');
+  
+  if (!urlInput || !urlBtn) return;
+  
+  urlBtn.addEventListener('click', async () => {
+    const url = urlInput.value.trim();
+    if (!url) { window.sharedUtils.showNotification('Please enter an image URL'); return; }
+    
+    try { new URL(url); } catch { window.sharedUtils.showNotification('Please enter a valid URL'); return; }
+    
+    urlImg.src = url;
+    urlPreview.style.display = 'block';
+    
+    urlImg.onerror = () => {
+      window.sharedUtils.showNotification('Failed to load image. Please check the URL.');
+      urlPreview.style.display = 'none';
+    };
+    
+    try {
+      const res = await authFetch('/api/v1/profile/avatar-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar: url })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        const img = document.getElementById('sd-avatar-img');
+        if (img) { img.src = data.avatar; img.style.display = 'block'; }
+        const sidebarAvatar = document.getElementById('sidebar-avatar');
+        if (sidebarAvatar) {
+          sidebarAvatar.src = data.avatar;
+          sidebarAvatar.dataset.avatarUrl = data.avatar;
+          console.log('Avatar set to:', data.avatar);
+        }
+        urlInput.value = '';
+        urlPreview.style.display = 'none';
+        window.sharedUtils.showNotification('Avatar updated!');
+      } else {
+        window.sharedUtils.showNotification(data.error, 'error');
+      }
+    } catch (e) { window.sharedUtils.showNotification('Failed to set avatar'); }
+  });
+  
+  urlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') urlBtn.click();
+  });
+  
+  if (urlApplyBtn) {
+    if (urlApplyBtn) {
+      urlApplyBtn.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) return;
+        
+        try {
+          const res = await authFetch('/api/v1/profile/avatar-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar: url })
+          });
+          const data = await res.json();
+          if (!data.error) {
+            const img = document.getElementById('sd-avatar-img');
+            if (img) { img.src = data.avatar; img.style.display = 'block'; }
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+              sidebarAvatar.src = data.avatar;
+              sidebarAvatar.dataset.avatarUrl = data.avatar;
+            }
+            window.sharedUtils.showNotification('Avatar updated!');
+            urlInput.value = '';
+            urlPreview.style.display = 'none';
+          } else {
+            window.sharedUtils.showNotification(data.error, 'error');
+          }
+        } catch (e) { window.sharedUtils.showNotification('Failed to set avatar'); }
+      });
+    }
+  }
+}
+
+// Set avatar from preset ID
+async function setAvatarFromPreset(presetId) {
+    try {
+        const res = await authFetch('/api/v1/profile/avatar/preset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ presetId: presetId, category: 'avatars' })
+        });
+        const data = await res.json();
+        if (!data.error) {
+            const img = document.getElementById('sd-avatar-img');
+            if (img) { img.src = url; img.style.display = 'block'; }
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+                sidebarAvatar.src = url;
+            }
+            window.sharedUtils.showNotification('Avatar set successfully!');
+        } else {
+            window.sharedUtils.showNotification(data.error, 'error');
+        }
+    } catch (e) {
+        window.sharedUtils.showNotification('Failed to set avatar');
+    }
+}
+
+// ── Avatar Browser (inline like wallpaper) ──
+(function() {
+    const grid = document.getElementById('preset-grid');
+    const input = document.getElementById('avatar-browse-input');
+    const searchBtn = document.getElementById('avatar-browse-search-btn');
+    const loadMoreBtn = document.getElementById('preset-load-more');
+    const loading = document.getElementById('preset-loading');
+    const empty = document.getElementById('preset-empty');
+    
+    // Avatar tabs
+    document.querySelectorAll('[data-av-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-av-tab]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.avTab;
+            document.getElementById('av-tab-browse').style.display = tab === 'browse' ? '' : 'none';
+            document.getElementById('av-tab-presets').style.display = tab === 'presets' ? '' : 'none';
+            if (tab === 'browse' && grid.children.length === 0) {
+                // Trigger initial search
+                setTimeout(() => { if (searchBtn) searchBtn.click(); }, 100);
+            }
+        });
+    });
+    
+    // Preset card clicks
+    document.querySelectorAll('[data-av-preset]').forEach(card => {
+        card.addEventListener('click', () => {
+            // Use preset gradient as avatar
+            const preset = card.dataset.avPreset;
+            const colors = card.querySelector('.sd-wp-preview').style.background;
+            setAvatarFromPreset(preset, colors);
+        });
+    });
+    
+    if (!grid || !input) return;
+
+    let avatarPage = 1, avatarQuery = '', avatarTotalPages = 1;
+
+    async function searchAvatars(query, page, append) {
+        avatarQuery = query; avatarPage = page;
+        loading.style.display = '';
+        empty.style.display = 'none';
+        if (!append) grid.innerHTML = '';
+        loadMoreBtn.style.display = 'none';
+
+        try {
+            const res = await authFetch(`/api/v1/browse/avatars?q=${encodeURIComponent(query)}&page=${page}`);
+            const data = await res.json();
+            loading.style.display = 'none';
+
+            if (!data.results || data.results.length === 0) {
+                if (!append) {
+                    empty.style.display = '';
+                    empty.querySelector('p').textContent = 'No avatars found. Try a different search.';
+                }
+                return;
+            }
+            avatarTotalPages = data.pages;
+
+            data.results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'wp-browse-item';
+                div.innerHTML = `<img src="${item.thumb}" loading="lazy" alt="avatar" /><div class="wp-overlay"><span>Apply</span></div>`;
+                div.addEventListener('click', () => {
+                    setAvatarFromURL(item.url);
+                    grid.querySelectorAll('.wp-browse-item').forEach(i => i.classList.remove('applied'));
+                    div.classList.add('applied');
+                });
+                grid.appendChild(div);
+            });
+
+            if (avatarPage < avatarTotalPages) loadMoreBtn.style.display = '';
+        } catch (e) {
+            loading.style.display = 'none';
+            empty.style.display = '';
+            empty.querySelector('p').textContent = 'Failed to load avatars. Try restarting the server.';
+        }
+    }
+
+    function doSearch() {
+        const q = input.value.trim();
+        if (!q) return;
+        document.querySelectorAll('#avatar-browse-tags .wp-tag').forEach(t => t.classList.remove('active'));
+        searchAvatars(q, 1, false);
+    }
+
+    if (searchBtn) searchBtn.addEventListener('click', doSearch);
+    if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+
+    // Tag clicks
+    document.querySelectorAll('#avatar-browse-tags .wp-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('#avatar-browse-tags .wp-tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            if (input) input.value = tag.dataset.q;
+            searchAvatars(tag.dataset.q, 1, false);
+        });
+    });
+
+    // Load more
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            searchAvatars(avatarQuery, avatarPage + 1, true);
+        });
+    }
+})();
+
+// Set avatar from URL
+async function setAvatarFromURL(url) {
+    try {
+        const res = await authFetch('/api/v1/profile/avatar-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar: url })
+        });
+        const data = await res.json();
+        if (!data.error) {
+            const img = document.getElementById('sd-avatar-img');
+            if (img) { img.src = data.avatar; img.style.display = 'block'; }
+            const sidebarAvatar = document.getElementById('sidebar-avatar');
+            if (sidebarAvatar) {
+                sidebarAvatar.src = data.avatar;
+                sidebarAvatar.dataset.avatarUrl = data.avatar;
+            }
+            window.sharedUtils.showNotification('Avatar set successfully!');
+        } else {
+            window.sharedUtils.showNotification(data.error, 'error');
+        }
+    } catch (e) {
+        window.sharedUtils.showNotification('Failed to set avatar');
+    }
+}
+
+// ── Status Update ──
+let statusTimer;
+let statusSaveStatus = null;
+
+function createStatusSaveIndicator() {
+    const input = document.getElementById('sd-status-input');
+    if (!statusSaveStatus) {
+        statusSaveStatus = document.createElement('div');
+        statusSaveStatus.id = 'status-save-status';
+        statusSaveStatus.style.cssText = 'font-size:0.75rem;margin-top:4px;color:var(--text-secondary)';
+        input.parentElement.appendChild(statusSaveStatus);
+    }
+    return statusSaveStatus;
+}
+
+document.getElementById('sd-status-input').addEventListener('input', (e) => {
+    const statusIndicator = createStatusSaveIndicator();
+    statusIndicator.textContent = 'Saving...';
+    statusIndicator.style.color = 'var(--text-secondary)';
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(async () => {
+        try {
+            const res = await authFetch('/api/v1/profile/status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: e.target.value })
+            });
+            if (res.ok) {
+                statusIndicator.textContent = 'Saved';
+                statusIndicator.style.color = 'var(--success, #4caf50)';
+                setTimeout(() => { statusIndicator.textContent = ''; }, 2000);
+            } else {
+                throw new Error('Save failed');
+            }
+        } catch (err) {
+            statusIndicator.textContent = 'Failed to save';
+            statusIndicator.style.color = 'var(--error, #f44336)';
+        }
+    }, 800);
+});
+
+// ── Shared Utils for other scripts ──
+function updateSidebarAvatar(avatarUrl) {
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (!sidebarAvatar) return;
+    if (avatarUrl && avatarUrl.trim()) {
+        sidebarAvatar.src = avatarUrl;
+        sidebarAvatar.alt = username;
+    } else {
+        sidebarAvatar.src = '';
+        sidebarAvatar.textContent = username ? username[0].toUpperCase() : '?';
+        sidebarAvatar.style.background = getColor(username || 'U');
+    }
+}
+
+async function loadProfileAndUpdateAvatar() {
+    try {
+        const res = await authFetch('/api/v1/profile');
+        const p = await res.json();
+        updateSidebarAvatar(p.avatar);
+        return p;
+    } catch (e) {
+        updateSidebarAvatar('');
+        return null;
+    }
+}
+
+function updateAppDisplay() {
+    const isMobile = window.innerWidth <= 768;
+    const app = document.getElementById('app-container');
+    if (app) {
+        if (isMobile) {
+            app.style.display = 'flex';
+            app.style.flexDirection = 'column';
+        } else {
+            app.style.display = 'grid';
+        }
+    }
+}
+
+window.sharedUtils = {
+    get authToken() { return authState.token; },
+    username,
+    setAuth: function(token, user) {
+        authState.token = token;
+        username = user;
+    },
+    authFetch,
+    getColor,
+    updateSidebarAvatar,
+    loadProfileAndUpdateAvatar,
+    updateAppDisplay
+};
