@@ -66,25 +66,5 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "setupFilesAfterEnv": [
-      "./tests/setup.ts"
-    ],
-    "testTimeout": 30000,
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "middleware/**/*.ts",
-      "routes/**/*.ts",
-      "socket/**/*.ts",
-      "utils/**/*.ts",
-      "config/**/*.ts",
-      "!/**/*.d.ts"
-    ],
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.ts$": "$1"
-    }
   }
 }

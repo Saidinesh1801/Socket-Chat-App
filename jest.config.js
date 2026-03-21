@@ -2,7 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  setupFilesAfterEnv: ['./tests/setup.js'],
+  setupFilesAfterEnv: ['./tests/setup.ts'],
   testTimeout: 30000,
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
