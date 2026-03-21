@@ -3,7 +3,7 @@ import { ExtendedError } from 'socket.io/dist/namespace';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
+export const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 
 interface JwtPayload {
   username: string;
@@ -27,4 +27,4 @@ function socketAuth(socket: AuthenticatedSocket, next: (err?: ExtendedError) => 
   }
 }
 
-export { socketAuth, JWT_SECRET, JwtPayload, AuthenticatedSocket };
+export { socketAuth, JwtPayload, AuthenticatedSocket };
