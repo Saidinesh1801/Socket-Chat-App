@@ -45,18 +45,11 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Install TypeScript
+        run: npm install -g typescript
       - name: Check for syntax errors
         run: |
-          node --check server.js
-          node --check config/db.js
-          node --check middleware/socketAuth.js
-          node --check socket/handler.js
-          node --check routes/auth.js
-          node --check routes/rooms.js
-          node --check routes/upload.js
-          node --check routes/linkPreview.js
-          node --check routes/wallpapers.js
-          node --check utils/email.js
+          npx tsc --noEmit --skipLibCheck
 
   security:
     runs-on: ubuntu-latest
